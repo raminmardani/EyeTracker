@@ -60,11 +60,13 @@ class CalibrationWindow(QWidget):
     finished = pyqtSignal(object, object)  # (X feature-matrix, Y target-matrix)
 
     def __init__(self, tracker, n_points=9, samples_per_point=30,
-                 dwell_ms=900):
+                 dwell_ms=900, collect_timeout_ms=3500):
         super().__init__()
         self.tracker = tracker
         self.samples_per_point = samples_per_point
+        self.min_samples_per_point = max(10, samples_per_point // 3)
         self.dwell_ms = dwell_ms
+        self.collect_timeout_ms = collect_timeout_ms
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowStaysOnTopHint
@@ -75,11 +77,16 @@ class CalibrationWindow(QWidget):
         self.idx = 0
         self.collecting = False
         self._buf = []
+        self._fallback_buf = []
         self.X, self.Y = [], []
 
         self._dwell_timer = QTimer(self)
         self._dwell_timer.setSingleShot(True)
         self._dwell_timer.timeout.connect(self._begin_collect)
+
+        self._collect_timer = QTimer(self)
+        self._collect_timer.setSingleShot(True)
+        self._collect_timer.timeout.connect(self._finish_collect)
 
         self._feat_handler = self._on_feat
         self.tracker.features_ready.connect(self._feat_handler)
@@ -117,33 +124,70 @@ class CalibrationWindow(QWidget):
 
     def _begin_collect(self):
         self._buf = []
+        self._fallback_buf = []
         self.collecting = True
+        self._collect_timer.start(self.collect_timeout_ms)
         self.update()
 
     def _on_feat(self, feat):
         if not self.collecting or feat is None:
             return
-        # Reject blinks (EAR below threshold) and off-axis head turns —
-        # those frames poison the per-dot average otherwise.
+        feat = np.asarray(feat, dtype=np.float64)
+        if not np.all(np.isfinite(feat)):
+            return
+        self._fallback_buf.append(feat)
+        # Prefer frames with both eyes open and a roughly centered head pose,
+        # but do not deadlock calibration if the thresholds are too strict on
+        # a given machine/camera combination.
         ear_a, ear_b = feat[6], feat[7]
         yaw = feat[8]
-        if ear_a < 0.22 or ear_b < 0.22 or abs(yaw) > 0.25:
+        if ear_a < 0.16 or ear_b < 0.16 or abs(yaw) > 0.60:
             return
         self._buf.append(feat)
         if len(self._buf) >= self.samples_per_point:
-            self.collecting = False
+            self._finish_collect()
+
+    def _finish_collect(self):
+        if not self.collecting:
+            return
+        self.collecting = False
+        self._collect_timer.stop()
+
+        chosen = None
+        point_no = self.idx + 1
+        if len(self._buf) >= self.min_samples_per_point:
+            chosen = self._buf
+        elif len(self._fallback_buf) >= self.min_samples_per_point:
+            chosen = self._fallback_buf
+            print(
+                f"[calibration] point {point_no}: using relaxed fallback "
+                f"({len(self._buf)} strict / {len(self._fallback_buf)} total)"
+            )
+        elif self._fallback_buf:
+            chosen = self._fallback_buf
+            print(
+                f"[calibration] point {point_no}: low sample count "
+                f"({len(self._fallback_buf)}/{self.min_samples_per_point})"
+            )
+        else:
+            print(f"[calibration] point {point_no}: no usable samples, skipping")
+
+        if chosen is not None:
             # Median is robust to the few bad frames that slip past the gate.
-            feat_repr = np.median(np.asarray(self._buf), axis=0)
+            feat_repr = np.median(np.asarray(chosen), axis=0)
             self.X.append(feat_repr)
             self.Y.append(self.points[self.idx])
-            self.idx += 1
-            QTimer.singleShot(250, self._advance)
+        self.idx += 1
+        self.update()
+        QTimer.singleShot(250, self._advance)
 
     def _disconnect(self):
         try:
             self.tracker.features_ready.disconnect(self._feat_handler)
         except (TypeError, RuntimeError):
             pass
+        self._dwell_timer.stop()
+        self._collect_timer.stop()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:

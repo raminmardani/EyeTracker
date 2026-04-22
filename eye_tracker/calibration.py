@@ -40,7 +40,11 @@ class _EyeRegressor:
     def predict(self, feat):
         x = self.scaler.transform(feat[self.feat_idx].reshape(1, -1))
         mean, std = self.gp.predict(x, return_std=True)
-        return mean[0], float(std[0])
+        mean = np.asarray(mean[0], dtype=np.float64)
+        std = np.asarray(std[0], dtype=np.float64)
+        if std.ndim == 0:
+            std = np.full(mean.shape, float(std), dtype=np.float64)
+        return mean, std
 
 
 class GazeCalibrator:
@@ -68,8 +72,8 @@ class GazeCalibrator:
         feat = np.asarray(feat, dtype=np.float64)
         mean_a, std_a = self.eye_a.predict(feat)
         mean_b, std_b = self.eye_b.predict(feat)
-        var_a = max(std_a * std_a, 1e-6)
-        var_b = max(std_b * std_b, 1e-6)
+        var_a = np.maximum(std_a * std_a, 1e-6)
+        var_b = np.maximum(std_b * std_b, 1e-6)
         w_a, w_b = 1.0 / var_a, 1.0 / var_b
         fused = (mean_a * w_a + mean_b * w_b) / (w_a + w_b)
         fused_var = 1.0 / (w_a + w_b)

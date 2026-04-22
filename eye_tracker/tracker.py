@@ -32,7 +32,7 @@ class GazeTracker(QObject):
         self.fps = fps
         self._stop = False
         self._thread = None
-        self._clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        self._no_face_streak = 0
 
     def start(self):
         self._stop = False
@@ -44,42 +44,107 @@ class GazeTracker(QObject):
         if self._thread is not None:
             self._thread.join(timeout=1.5)
 
-    def _open_capture(self):
-        for backend in _preferred_backends():
-            cap = cv2.VideoCapture(self.cam_index, backend)
-            if cap.isOpened():
-                cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
-                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
-                cap.set(cv2.CAP_PROP_FPS, self.fps)
-                return cap
-            cap.release()
-        return cv2.VideoCapture(self.cam_index)
+    def _configure_capture(self, cap):
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+        cap.set(cv2.CAP_PROP_FPS, self.fps)
 
-    def _preprocess(self, frame):
+    def _candidate_indices(self):
+        if self.cam_index is None or self.cam_index < 0:
+            return [0, 1, 2, 3]
+        return [self.cam_index] + [idx for idx in range(4) if idx != self.cam_index]
+
+    def _probe_capture(self, cap, warmup_frames=8):
+        last_frame = None
+        for _ in range(warmup_frames):
+            ok, frame = cap.read()
+            if ok and frame is not None:
+                last_frame = frame
+            time.sleep(0.04)
+        if last_frame is None:
+            return None
+        gray = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
+        mean = float(gray.mean())
+        std = float(gray.std())
+        score = mean + 1.5 * std
+        viable = mean >= 25.0 or std >= 10.0
+        return {"mean": mean, "std": std, "score": score, "viable": viable}
+
+    def _open_capture(self):
+        best = None
+        fallback = None
+        for idx in self._candidate_indices():
+            for backend in _preferred_backends():
+                cap = cv2.VideoCapture(idx, backend)
+                if not cap.isOpened():
+                    cap.release()
+                    continue
+                self._configure_capture(cap)
+                probe = self._probe_capture(cap)
+                cap.release()
+                if probe is None:
+                    continue
+                candidate = {"idx": idx, "backend": backend, **probe}
+                if fallback is None or candidate["score"] > fallback["score"]:
+                    fallback = candidate
+                if candidate["viable"] and (
+                    best is None or candidate["score"] > best["score"]
+                ):
+                    best = candidate
+
+        chosen = best or fallback
+        if chosen is None:
+            return cv2.VideoCapture(self.cam_index if self.cam_index is not None else 0)
+
+        cap = cv2.VideoCapture(chosen["idx"], chosen["backend"])
+        if not cap.isOpened():
+            cap.release()
+            return cv2.VideoCapture(chosen["idx"])
+        self._configure_capture(cap)
+        if self.cam_index is not None and self.cam_index >= 0 and chosen["idx"] != self.cam_index:
+            print(
+                f"[tracker] camera index {self.cam_index} looked unusable; "
+                f"using camera index {chosen['idx']} instead"
+            )
+        print(
+            f"[tracker] selected camera index {chosen['idx']} "
+            f"(backend {chosen['backend']}, mean={chosen['mean']:.1f}, std={chosen['std']:.1f})"
+        )
+        return cap
+
+    def _prepare_frame(self, frame):
         # Mirror so the user's iris moves in the same direction as their gaze
-        frame = cv2.flip(frame, 1)
-        # CLAHE on luminance for robustness under uneven lighting
-        yuv = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV)
-        yuv[:, :, 0] = self._clahe.apply(yuv[:, :, 0])
-        return cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
+        return cv2.flip(frame, 1)
 
     def _run(self):
         cap = self._open_capture()
         if not cap.isOpened():
             print("[tracker] failed to open webcam")
             return
-        mesh = FaceMeshWrapper()
+        try:
+            mesh = FaceMeshWrapper()
+        except Exception as exc:
+            cap.release()
+            print(f"[tracker] failed to initialize face landmarks: {exc}")
+            return
         try:
             while not self._stop:
                 ok, frame = cap.read()
                 if not ok:
                     time.sleep(0.01)
                     continue
-                frame = self._preprocess(frame)
+                frame = self._prepare_frame(frame)
                 result = mesh.process(frame)
                 if result is None:
+                    self._no_face_streak += 1
+                    if self._no_face_streak % 90 == 0:
+                        print(
+                            "[tracker] no face landmarks detected "
+                            f"for {self._no_face_streak} frames"
+                        )
                     self.features_ready.emit(None)
                     continue
+                self._no_face_streak = 0
                 feat = extract_gaze_features(result)
                 self.features_ready.emit(feat)
         finally:

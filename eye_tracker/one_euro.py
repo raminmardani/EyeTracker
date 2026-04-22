@@ -6,6 +6,8 @@ Reference: Casiez, Roussel & Vogel, CHI 2012.
 import math
 import time
 
+import numpy as np
+
 
 def _alpha(cutoff, dt):
     tau = 1.0 / (2.0 * math.pi * cutoff)
@@ -50,8 +52,10 @@ class OneEuro2D:
             t = time.monotonic()
         # Higher predictor variance -> smaller cutoff scale -> more smoothing.
         scale = 1.0
-        if variance is not None and variance > 0:
-            scale = 1.0 / (1.0 + math.sqrt(variance) / self._var_scale)
+        if variance is not None:
+            var = float(np.mean(np.maximum(np.asarray(variance, dtype=np.float64), 0.0)))
+            if var > 0.0:
+                scale = 1.0 / (1.0 + math.sqrt(var) / self._var_scale)
         fx = self._fx(x, t, cutoff_scale=scale)
         fy = self._fy(y, t, cutoff_scale=scale)
         return fx, fy
