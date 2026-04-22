@@ -41,11 +41,15 @@ FEATURE_VERGENCE_X = 14
 FEATURE_VERGENCE_Y = 15
 FEATURE_A_IRIS_RADIUS = 16
 FEATURE_B_IRIS_RADIUS = 17
-FEATURE_FACE_CX = 18
-FEATURE_FACE_CY = 19
-FEATURE_FACE_SCALE = 20
-FEATURE_INTEROCULAR = 21
-FEATURE_COUNT = 22
+FEATURE_A_UPPER_CLEAR = 18
+FEATURE_A_LOWER_CLEAR = 19
+FEATURE_B_UPPER_CLEAR = 20
+FEATURE_B_LOWER_CLEAR = 21
+FEATURE_FACE_CX = 22
+FEATURE_FACE_CY = 23
+FEATURE_FACE_SCALE = 24
+FEATURE_INTEROCULAR = 25
+FEATURE_COUNT = 26
 
 
 def _centroid(pts, indices):
@@ -77,6 +81,8 @@ def _eye_geometry(pts, outer_idx, inner_idx, top_idx, bottom_idx, iris_ring_idx)
     dx = float(np.dot(iris_offset, u) / eye_w)
     dy = float(np.dot(iris_offset, v) / eye_h)
     ear = eye_h / eye_w
+    upper_clear = float(np.dot(iris - p_top, v) / eye_h)
+    lower_clear = float(np.dot(p_bot - iris, v) / eye_h)
 
     iris_ring = pts[np.asarray(iris_ring_idx, dtype=np.int32)]
     iris_radius = float(np.mean(np.linalg.norm(iris_ring - iris, axis=1)) / eye_w)
@@ -85,6 +91,8 @@ def _eye_geometry(pts, outer_idx, inner_idx, top_idx, bottom_idx, iris_ring_idx)
         "dy": dy,
         "ear": ear,
         "iris_radius": iris_radius,
+        "upper_clear": upper_clear,
+        "lower_clear": lower_clear,
         "center": center,
     }
 
@@ -142,6 +150,10 @@ def extract_gaze_features(mesh_result):
         eye_a["dy"] - eye_b["dy"],
         eye_a["iris_radius"],
         eye_b["iris_radius"],
+        eye_a["upper_clear"],
+        eye_a["lower_clear"],
+        eye_b["upper_clear"],
+        eye_b["lower_clear"],
         float(face_cx),
         float(face_cy),
         float(face_scale),

@@ -7,7 +7,7 @@ from PyQt6.QtCore import QObject, pyqtSlot
 from PyQt6.QtWidgets import QApplication
 
 from eye_tracker.calibration import GazeCalibrator
-from eye_tracker.gaze import FEATURE_A_EAR, FEATURE_B_EAR, FEATURE_YAW
+from eye_tracker.gaze import FEATURE_A_EAR, FEATURE_B_EAR, FEATURE_PITCH, FEATURE_YAW
 from eye_tracker.one_euro import OneEuro2D
 from eye_tracker.overlay import CalibrationWindow, GazeOverlay
 from eye_tracker.tracker import GazeTracker
@@ -56,6 +56,7 @@ class AppController(QObject):
             feat[FEATURE_A_EAR] < 0.16
             or feat[FEATURE_B_EAR] < 0.16
             or abs(feat[FEATURE_YAW]) > 0.70
+            or abs(feat[FEATURE_PITCH]) > 0.55
         ):
             return
         self._feat_history.append(feat)

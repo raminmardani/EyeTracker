@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt, QTimer, QPointF, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QPainter, QPen
 from PyQt6.QtWidgets import QApplication, QWidget
 
-from .gaze import FEATURE_A_EAR, FEATURE_B_EAR, FEATURE_YAW
+from .gaze import FEATURE_A_EAR, FEATURE_B_EAR, FEATURE_PITCH, FEATURE_YAW
 
 _IS_MAC = sys.platform == "darwin"
 
@@ -126,6 +126,9 @@ class CalibrationWindow(QWidget):
             xs = [0.1, 0.5, 0.9]; ys = [0.1, 0.5, 0.9]
         elif n <= 16:
             xs = [0.07, 0.36, 0.64, 0.93]; ys = [0.07, 0.36, 0.64, 0.93]
+        elif n <= 25:
+            xs = [0.06, 0.28, 0.5, 0.72, 0.94]
+            ys = [0.05, 0.22, 0.42, 0.66, 0.9]
         else:
             xs = np.linspace(0.07, 0.93, 5); ys = np.linspace(0.07, 0.93, 5)
         return [(int(w * x), int(h * y)) for y in ys for x in xs]
@@ -165,7 +168,8 @@ class CalibrationWindow(QWidget):
         # a given machine/camera combination.
         ear_a, ear_b = feat[FEATURE_A_EAR], feat[FEATURE_B_EAR]
         yaw = feat[FEATURE_YAW]
-        if ear_a < 0.16 or ear_b < 0.16 or abs(yaw) > 0.60:
+        pitch = feat[FEATURE_PITCH]
+        if ear_a < 0.16 or ear_b < 0.16 or abs(yaw) > 0.60 or abs(pitch) > 0.45:
             return
         self._buf.append(feat)
         if len(self._buf) >= self.samples_per_point:
