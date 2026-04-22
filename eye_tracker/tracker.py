@@ -24,7 +24,7 @@ class GazeTracker(QObject):
     # emits a feature vector (np.ndarray) or None when no face is visible
     features_ready = pyqtSignal(object)
 
-    def __init__(self, cam_index=0, width=1280, height=720, fps=30):
+    def __init__(self, cam_index=0, width=1920, height=1080, fps=30):
         super().__init__()
         self.cam_index = cam_index
         self.width = width
@@ -48,18 +48,24 @@ class GazeTracker(QObject):
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         cap.set(cv2.CAP_PROP_FPS, self.fps)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
     def _candidate_indices(self):
         if self.cam_index is None or self.cam_index < 0:
             return [0, 1, 2, 3]
         return [self.cam_index] + [idx for idx in range(4) if idx != self.cam_index]
 
-    def _probe_capture(self, cap, warmup_frames=8):
+    def _probe_capture(self, cap, probe_mesh=None, warmup_frames=8):
         last_frame = None
+        valid_frames = 0
+        detected = 0
         for _ in range(warmup_frames):
             ok, frame = cap.read()
             if ok and frame is not None:
                 last_frame = frame
+                valid_frames += 1
+                if probe_mesh is not None and probe_mesh.process(self._prepare_frame(frame)) is not None:
+                    detected += 1
             time.sleep(0.04)
         if last_frame is None:
             return None
@@ -68,9 +74,16 @@ class GazeTracker(QObject):
         std = float(gray.std())
         score = mean + 1.5 * std
         viable = mean >= 25.0 or std >= 10.0
-        return {"mean": mean, "std": std, "score": score, "viable": viable}
+        return {
+            "mean": mean,
+            "std": std,
+            "score": score,
+            "viable": viable,
+            "valid_frames": valid_frames,
+            "detected_frames": detected,
+        }
 
-    def _open_capture(self):
+    def _open_capture(self, probe_mesh=None):
         best = None
         fallback = None
         for idx in self._candidate_indices():
@@ -80,15 +93,20 @@ class GazeTracker(QObject):
                     cap.release()
                     continue
                 self._configure_capture(cap)
-                probe = self._probe_capture(cap)
+                probe = self._probe_capture(cap, probe_mesh=probe_mesh)
                 cap.release()
                 if probe is None:
                     continue
                 candidate = {"idx": idx, "backend": backend, **probe}
                 if fallback is None or candidate["score"] > fallback["score"]:
                     fallback = candidate
-                if candidate["viable"] and (
-                    best is None or candidate["score"] > best["score"]
+                if candidate["detected_frames"] > 0 and (
+                    best is None
+                    or candidate["detected_frames"] > best["detected_frames"]
+                    or (
+                        candidate["detected_frames"] == best["detected_frames"]
+                        and candidate["score"] > best["score"]
+                    )
                 ):
                     best = candidate
 
@@ -108,7 +126,8 @@ class GazeTracker(QObject):
             )
         print(
             f"[tracker] selected camera index {chosen['idx']} "
-            f"(backend {chosen['backend']}, mean={chosen['mean']:.1f}, std={chosen['std']:.1f})"
+            f"(backend {chosen['backend']}, faces={chosen['detected_frames']}/"
+            f"{chosen['valid_frames']}, mean={chosen['mean']:.1f}, std={chosen['std']:.1f})"
         )
         return cap
 
@@ -117,15 +136,15 @@ class GazeTracker(QObject):
         return cv2.flip(frame, 1)
 
     def _run(self):
-        cap = self._open_capture()
-        if not cap.isOpened():
-            print("[tracker] failed to open webcam")
-            return
         try:
             mesh = FaceMeshWrapper()
         except Exception as exc:
-            cap.release()
             print(f"[tracker] failed to initialize face landmarks: {exc}")
+            return
+        cap = self._open_capture(probe_mesh=mesh)
+        if not cap.isOpened():
+            print("[tracker] failed to open webcam")
+            mesh.close()
             return
         try:
             while not self._stop:

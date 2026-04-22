@@ -6,7 +6,24 @@ from PyQt6.QtCore import Qt, QTimer, QPointF, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QPainter, QPen
 from PyQt6.QtWidgets import QApplication, QWidget
 
+from .gaze import FEATURE_A_EAR, FEATURE_B_EAR, FEATURE_YAW
+
 _IS_MAC = sys.platform == "darwin"
+
+
+def _representative_feature(samples):
+    arr = np.asarray(samples, dtype=np.float64)
+    if len(arr) <= 4:
+        return np.median(arr, axis=0)
+
+    center = np.median(arr, axis=0)
+    mad = np.median(np.abs(arr - center), axis=0)
+    scale = np.where(mad > 1e-6, mad, 1.0)
+    dist = np.sqrt(np.mean(((arr - center) / scale) ** 2, axis=1))
+    keep = max(8, int(round(len(arr) * 0.7)))
+    keep = min(keep, len(arr))
+    chosen = arr[np.argsort(dist)[:keep]]
+    return np.median(chosen, axis=0)
 
 
 class GazeOverlay(QWidget):
@@ -36,8 +53,8 @@ class GazeOverlay(QWidget):
         self._visible_dot = True
 
     def update_position(self, x, y):
-        self._x = float(x)
-        self._y = float(y)
+        self._x = float(np.clip(x, 0.0, max(0.0, self.width() - 1.0)))
+        self._y = float(np.clip(y, 0.0, max(0.0, self.height() - 1.0)))
         self.update()
 
     def set_dot_visible(self, visible: bool):
@@ -60,7 +77,7 @@ class CalibrationWindow(QWidget):
     finished = pyqtSignal(object, object)  # (X feature-matrix, Y target-matrix)
 
     def __init__(self, tracker, n_points=9, samples_per_point=30,
-                 dwell_ms=900, collect_timeout_ms=3500):
+                 dwell_ms=900, collect_timeout_ms=4500):
         super().__init__()
         self.tracker = tracker
         self.samples_per_point = samples_per_point
@@ -75,6 +92,7 @@ class CalibrationWindow(QWidget):
         self.setGeometry(screen)
         self.points = self._grid(screen.width(), screen.height(), n_points)
         self.idx = 0
+        self._started = False
         self.collecting = False
         self._buf = []
         self._fallback_buf = []
@@ -101,7 +119,6 @@ class CalibrationWindow(QWidget):
         else:
             self.showFullScreen()
         self.setFocus()
-        QTimer.singleShot(600, self._advance)
 
     @staticmethod
     def _grid(w, h, n):
@@ -130,17 +147,24 @@ class CalibrationWindow(QWidget):
         self.update()
 
     def _on_feat(self, feat):
-        if not self.collecting or feat is None:
+        if feat is None:
             return
         feat = np.asarray(feat, dtype=np.float64)
         if not np.all(np.isfinite(feat)):
+            return
+        if not self._started:
+            self._started = True
+            self.update()
+            QTimer.singleShot(250, self._advance)
+            return
+        if not self.collecting:
             return
         self._fallback_buf.append(feat)
         # Prefer frames with both eyes open and a roughly centered head pose,
         # but do not deadlock calibration if the thresholds are too strict on
         # a given machine/camera combination.
-        ear_a, ear_b = feat[6], feat[7]
-        yaw = feat[8]
+        ear_a, ear_b = feat[FEATURE_A_EAR], feat[FEATURE_B_EAR]
+        yaw = feat[FEATURE_YAW]
         if ear_a < 0.16 or ear_b < 0.16 or abs(yaw) > 0.60:
             return
         self._buf.append(feat)
@@ -173,8 +197,7 @@ class CalibrationWindow(QWidget):
             print(f"[calibration] point {point_no}: no usable samples, skipping")
 
         if chosen is not None:
-            # Median is robust to the few bad frames that slip past the gate.
-            feat_repr = np.median(np.asarray(chosen), axis=0)
+            feat_repr = _representative_feature(chosen)
             self.X.append(feat_repr)
             self.Y.append(self.points[self.idx])
         self.idx += 1
@@ -199,11 +222,16 @@ class CalibrationWindow(QWidget):
         p = QPainter(self)
         p.fillRect(self.rect(), QColor(18, 18, 22))
         p.setPen(QPen(QColor(180, 180, 180)))
+        message = (
+            f"Look at the dot  ({min(self.idx + 1, len(self.points))}/{len(self.points)})"
+            "   —   Esc to abort"
+        )
+        if not self._started:
+            message = "Center your face in the camera to start calibration   —   Esc to abort"
         p.drawText(
             self.rect().adjusted(0, 24, 0, 0),
             Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter,
-            f"Look at the dot  ({min(self.idx + 1, len(self.points))}/{len(self.points)})"
-            "   —   Esc to abort",
+            message,
         )
         if self.idx >= len(self.points):
             return

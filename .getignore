@@ -1,4 +1,6 @@
-*.pyc
-__pycache__/
-log/
 eye_tracker/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+log/

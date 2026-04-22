@@ -1,11 +1,13 @@
 """Entry point: webcam gaze tracker with calibration + on-screen dot overlay."""
 import sys
+from collections import deque
 
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSlot
 from PyQt6.QtWidgets import QApplication
 
 from eye_tracker.calibration import GazeCalibrator
+from eye_tracker.gaze import FEATURE_A_EAR, FEATURE_B_EAR, FEATURE_YAW
 from eye_tracker.one_euro import OneEuro2D
 from eye_tracker.overlay import CalibrationWindow, GazeOverlay
 from eye_tracker.tracker import GazeTracker
@@ -16,11 +18,12 @@ class AppController(QObject):
         super().__init__()
         self.tracker = GazeTracker(cam_index=cam_index)
         self.calibrator = GazeCalibrator()
-        self.smoother = OneEuro2D(min_cutoff=1.0, beta=0.007)
+        self.smoother = OneEuro2D(min_cutoff=1.6, beta=0.06)
         self.overlay = None
         self.calib_win = None
         self.n_cal_points = n_cal_points
         self.samples_per_point = samples_per_point
+        self._feat_history = deque(maxlen=5)
 
     def start(self):
         self.tracker.start()
@@ -39,6 +42,7 @@ class AppController(QObject):
             QApplication.instance().quit()
             return
         self.calibrator.fit(X, Y)
+        self._feat_history.clear()
         self.overlay = GazeOverlay()
         self.overlay.show()
         self.tracker.features_ready.connect(self._on_feat)
@@ -47,8 +51,17 @@ class AppController(QObject):
     def _on_feat(self, feat):
         if feat is None or self.overlay is None:
             return
+        feat = np.asarray(feat, dtype=np.float64)
+        if (
+            feat[FEATURE_A_EAR] < 0.16
+            or feat[FEATURE_B_EAR] < 0.16
+            or abs(feat[FEATURE_YAW]) > 0.70
+        ):
+            return
+        self._feat_history.append(feat)
+        feat_for_pred = np.median(np.asarray(self._feat_history), axis=0)
         try:
-            pred, var = self.calibrator.predict_with_variance(feat)
+            pred, var = self.calibrator.predict_with_variance(feat_for_pred)
         except Exception as exc:  # predictor rarely but can fail on degenerate input
             print(f"[predict] {exc}")
             return
@@ -63,7 +76,7 @@ class AppController(QObject):
 
 def main():
     app = QApplication(sys.argv)
-    controller = AppController(cam_index=0, n_cal_points=16, samples_per_point=45)
+    controller = AppController(cam_index=0, n_cal_points=25, samples_per_point=60)
     app.aboutToQuit.connect(controller.shutdown)
     controller.start()
     sys.exit(app.exec())
