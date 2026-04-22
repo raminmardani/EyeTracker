@@ -49,13 +49,31 @@ FEATURE_FACE_CX = 22
 FEATURE_FACE_CY = 23
 FEATURE_FACE_SCALE = 24
 FEATURE_INTEROCULAR = 25
-FEATURE_COUNT = 26
+FEATURE_A_LOOK_H = 26
+FEATURE_A_LOOK_V = 27
+FEATURE_B_LOOK_H = 28
+FEATURE_B_LOOK_V = 29
+FEATURE_A_BLINK = 30
+FEATURE_B_BLINK = 31
+FEATURE_A_SQUINT = 32
+FEATURE_B_SQUINT = 33
+FEATURE_LOOK_H_AVG = 34
+FEATURE_LOOK_V_AVG = 35
+FEATURE_BLINK_AVG = 36
+FEATURE_SQUINT_AVG = 37
+FEATURE_COUNT = 38
 
 
 def _centroid(pts, indices):
     if np.isscalar(indices):
         return pts[int(indices)]
     return np.mean(pts[np.asarray(indices, dtype=np.int32)], axis=0)
+
+
+def _blendshape_score(blendshapes, name):
+    if not blendshapes:
+        return 0.0
+    return float(blendshapes.get(name, 0.0))
 
 
 def _eye_geometry(pts, outer_idx, inner_idx, top_idx, bottom_idx, iris_ring_idx):
@@ -101,6 +119,7 @@ def extract_gaze_features(mesh_result):
     """Return a feature vector describing the current gaze state."""
     pts = mesh_result["pts2d"]
     w, h = mesh_result["size"]
+    blendshapes = mesh_result.get("blendshapes") or {}
 
     eye_a = _eye_geometry(
         pts,
@@ -130,6 +149,26 @@ def extract_gaze_features(mesh_result):
     face_scale = interocular / (float(w) + 1e-6)
     face_cx = eye_mid[0] / float(w) - 0.5
     face_cy = eye_mid[1] / float(h) - 0.5
+    a_look_h = (
+        _blendshape_score(blendshapes, "eyeLookOutLeft")
+        - _blendshape_score(blendshapes, "eyeLookInLeft")
+    )
+    a_look_v = (
+        _blendshape_score(blendshapes, "eyeLookUpLeft")
+        - _blendshape_score(blendshapes, "eyeLookDownLeft")
+    )
+    b_look_h = (
+        _blendshape_score(blendshapes, "eyeLookInRight")
+        - _blendshape_score(blendshapes, "eyeLookOutRight")
+    )
+    b_look_v = (
+        _blendshape_score(blendshapes, "eyeLookUpRight")
+        - _blendshape_score(blendshapes, "eyeLookDownRight")
+    )
+    a_blink = _blendshape_score(blendshapes, "eyeBlinkLeft")
+    b_blink = _blendshape_score(blendshapes, "eyeBlinkRight")
+    a_squint = _blendshape_score(blendshapes, "eyeSquintLeft")
+    b_squint = _blendshape_score(blendshapes, "eyeSquintRight")
 
     return np.array([
         eye_a["dx"],
@@ -158,4 +197,16 @@ def extract_gaze_features(mesh_result):
         float(face_cy),
         float(face_scale),
         interocular / (math.sqrt(float(w) * float(h)) + 1e-6),
+        a_look_h,
+        a_look_v,
+        b_look_h,
+        b_look_v,
+        a_blink,
+        b_blink,
+        a_squint,
+        b_squint,
+        0.5 * (a_look_h + b_look_h),
+        0.5 * (a_look_v + b_look_v),
+        0.5 * (a_blink + b_blink),
+        0.5 * (a_squint + b_squint),
     ], dtype=np.float64)

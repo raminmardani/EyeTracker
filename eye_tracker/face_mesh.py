@@ -102,6 +102,8 @@ class FaceMeshWrapper:
             min_face_detection_confidence=0.3,
             min_face_presence_confidence=0.3,
             min_tracking_confidence=0.3,
+            output_face_blendshapes=True,
+            output_facial_transformation_matrixes=True,
         )
         self._mode = "tasks"
         self.mesh = mp.tasks.vision.FaceLandmarker.create_from_options(options)
@@ -109,12 +111,19 @@ class FaceMeshWrapper:
     def process(self, frame_bgr):
         h, w = frame_bgr.shape[:2]
         rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-        lm = self._detect_landmarks(rgb)
-        if lm is None:
+        detection = self._detect_landmarks(rgb)
+        if detection is None:
             return None
+        lm = detection["landmarks"]
         pts2d = np.array([(p.x * w, p.y * h) for p in lm], dtype=np.float64)
         head_pose = self._head_pose(pts2d, w, h)
-        return {"pts2d": pts2d, "head_pose": head_pose, "size": (w, h)}
+        return {
+            "pts2d": pts2d,
+            "head_pose": head_pose,
+            "size": (w, h),
+            "blendshapes": detection.get("blendshapes"),
+            "facial_matrix": detection.get("facial_matrix"),
+        }
 
     def _detect_landmarks(self, frame_rgb):
         if self._mode == "solutions":
@@ -122,7 +131,11 @@ class FaceMeshWrapper:
             result = self.mesh.process(frame_rgb)
             if not result.multi_face_landmarks:
                 return None
-            return result.multi_face_landmarks[0].landmark
+            return {
+                "landmarks": result.multi_face_landmarks[0].landmark,
+                "blendshapes": None,
+                "facial_matrix": None,
+            }
 
         timestamp_ms = max(self._last_timestamp_ms + 1, int(time.monotonic() * 1000))
         self._last_timestamp_ms = timestamp_ms
@@ -130,7 +143,20 @@ class FaceMeshWrapper:
         result = self.mesh.detect_for_video(image, timestamp_ms)
         if not result.face_landmarks:
             return None
-        return result.face_landmarks[0]
+        blendshape_map = None
+        if result.face_blendshapes:
+            blendshape_map = {
+                category.category_name: float(category.score)
+                for category in result.face_blendshapes[0]
+            }
+        facial_matrix = None
+        if result.facial_transformation_matrixes:
+            facial_matrix = result.facial_transformation_matrixes[0]
+        return {
+            "landmarks": result.face_landmarks[0],
+            "blendshapes": blendshape_map,
+            "facial_matrix": facial_matrix,
+        }
 
     def _head_pose(self, pts2d, w, h):
         image_points = pts2d[_POSE_LM_IDX]

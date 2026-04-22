@@ -47,7 +47,7 @@ class OneEuro2D:
         self._fy = _OneEuro1D(min_cutoff, beta, d_cutoff)
         self._var_scale = float(variance_scale)
 
-    def filter(self, x, y, variance=None, t=None):
+    def filter(self, x, y, variance=None, t=None, motion=0.0):
         if t is None:
             t = time.monotonic()
         # Higher predictor variance -> smaller cutoff scale -> more smoothing.
@@ -56,6 +56,8 @@ class OneEuro2D:
             var = float(np.mean(np.maximum(np.asarray(variance, dtype=np.float64), 0.0)))
             if var > 0.0:
                 scale = 1.0 / (1.0 + math.sqrt(var) / self._var_scale)
+        if motion > 0.0:
+            scale *= min(2.5, 1.0 + float(motion) / 25.0)
         fx = self._fx(x, t, cutoff_scale=scale)
         fy = self._fy(y, t, cutoff_scale=scale)
         return fx, fy

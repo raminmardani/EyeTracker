@@ -9,7 +9,11 @@ from .gaze import (
     FEATURE_A_DY,
     FEATURE_A_EAR,
     FEATURE_A_IRIS_RADIUS,
+    FEATURE_A_BLINK,
     FEATURE_A_LOWER_CLEAR,
+    FEATURE_A_LOOK_H,
+    FEATURE_A_LOOK_V,
+    FEATURE_A_SQUINT,
     FEATURE_A_UPPER_CLEAR,
     FEATURE_AVG_DX,
     FEATURE_AVG_DY,
@@ -17,14 +21,22 @@ from .gaze import (
     FEATURE_B_DY,
     FEATURE_B_EAR,
     FEATURE_B_IRIS_RADIUS,
+    FEATURE_B_BLINK,
     FEATURE_B_LOWER_CLEAR,
+    FEATURE_B_LOOK_H,
+    FEATURE_B_LOOK_V,
+    FEATURE_B_SQUINT,
     FEATURE_B_UPPER_CLEAR,
+    FEATURE_BLINK_AVG,
     FEATURE_FACE_CX,
     FEATURE_FACE_CY,
     FEATURE_FACE_SCALE,
     FEATURE_INTEROCULAR,
+    FEATURE_LOOK_H_AVG,
+    FEATURE_LOOK_V_AVG,
     FEATURE_PITCH,
     FEATURE_ROLL,
+    FEATURE_SQUINT_AVG,
     FEATURE_TX,
     FEATURE_TY,
     FEATURE_TZ,
@@ -35,6 +47,8 @@ from .gaze import (
 
 _EYE_A_FEAT_IDX_X = [
     FEATURE_A_DX,
+    FEATURE_A_LOOK_H,
+    FEATURE_LOOK_H_AVG,
     FEATURE_VERGENCE_X,
     FEATURE_YAW,
     FEATURE_ROLL,
@@ -47,7 +61,11 @@ _EYE_A_FEAT_IDX_X = [
 ]
 _EYE_A_FEAT_IDX_Y = [
     FEATURE_A_DY,
+    FEATURE_A_LOOK_V,
+    FEATURE_LOOK_V_AVG,
     FEATURE_A_EAR,
+    FEATURE_A_BLINK,
+    FEATURE_A_SQUINT,
     FEATURE_A_UPPER_CLEAR,
     FEATURE_A_LOWER_CLEAR,
     FEATURE_PITCH,
@@ -59,6 +77,8 @@ _EYE_A_FEAT_IDX_Y = [
 ]
 _EYE_B_FEAT_IDX_X = [
     FEATURE_B_DX,
+    FEATURE_B_LOOK_H,
+    FEATURE_LOOK_H_AVG,
     FEATURE_VERGENCE_X,
     FEATURE_YAW,
     FEATURE_ROLL,
@@ -71,7 +91,11 @@ _EYE_B_FEAT_IDX_X = [
 ]
 _EYE_B_FEAT_IDX_Y = [
     FEATURE_B_DY,
+    FEATURE_B_LOOK_V,
+    FEATURE_LOOK_V_AVG,
     FEATURE_B_EAR,
+    FEATURE_B_BLINK,
+    FEATURE_B_SQUINT,
     FEATURE_B_UPPER_CLEAR,
     FEATURE_B_LOWER_CLEAR,
     FEATURE_PITCH,
@@ -85,6 +109,9 @@ _BINOCULAR_FEAT_IDX_X = [
     FEATURE_A_DX,
     FEATURE_B_DX,
     FEATURE_AVG_DX,
+    FEATURE_A_LOOK_H,
+    FEATURE_B_LOOK_H,
+    FEATURE_LOOK_H_AVG,
     FEATURE_VERGENCE_X,
     FEATURE_YAW,
     FEATURE_ROLL,
@@ -98,8 +125,17 @@ _BINOCULAR_FEAT_IDX_Y = [
     FEATURE_A_DY,
     FEATURE_B_DY,
     FEATURE_AVG_DY,
+    FEATURE_A_LOOK_V,
+    FEATURE_B_LOOK_V,
+    FEATURE_LOOK_V_AVG,
     FEATURE_A_EAR,
     FEATURE_B_EAR,
+    FEATURE_A_BLINK,
+    FEATURE_B_BLINK,
+    FEATURE_A_SQUINT,
+    FEATURE_B_SQUINT,
+    FEATURE_BLINK_AVG,
+    FEATURE_SQUINT_AVG,
     FEATURE_A_UPPER_CLEAR,
     FEATURE_A_LOWER_CLEAR,
     FEATURE_B_UPPER_CLEAR,
@@ -158,9 +194,13 @@ class _ScreenRegressor:
         return mean, std
 
 
-def _quality_weight(feat, ear_idx):
+def _quality_weight(feat, ear_idx, blink_idx, squint_idx):
     ear = float(feat[ear_idx])
-    return float(np.clip((ear - 0.12) / 0.18, 0.15, 1.0))
+    blink = float(feat[blink_idx])
+    squint = float(feat[squint_idx])
+    ear_quality = np.clip((ear - 0.12) / 0.18, 0.15, 1.0)
+    blink_quality = np.clip(1.0 - 1.3 * blink - 0.7 * squint, 0.15, 1.0)
+    return float(ear_quality * blink_quality)
 
 
 class GazeCalibrator:
@@ -192,8 +232,8 @@ class GazeCalibrator:
             raise RuntimeError("Calibrator has not been trained")
         feat = np.asarray(feat, dtype=np.float64)
 
-        quality_a = _quality_weight(feat, FEATURE_A_EAR)
-        quality_b = _quality_weight(feat, FEATURE_B_EAR)
+        quality_a = _quality_weight(feat, FEATURE_A_EAR, FEATURE_A_BLINK, FEATURE_A_SQUINT)
+        quality_b = _quality_weight(feat, FEATURE_B_EAR, FEATURE_B_BLINK, FEATURE_B_SQUINT)
         yaw = abs(float(feat[FEATURE_YAW])) / 0.9
         pitch = abs(float(feat[FEATURE_PITCH])) / 0.65
         pose_quality = float(np.clip(1.0 - 0.5 * (yaw + pitch), 0.25, 1.0))
