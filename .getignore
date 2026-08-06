@@ -1,6 +1,0 @@
-eye_tracker/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-log/
