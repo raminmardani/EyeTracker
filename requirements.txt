@@ -1,6 +1,23 @@
-opencv-python>=4.8
-mediapipe>=0.10.9
-numpy>=1.24,<2.0
-scipy>=1.10
-scikit-learn>=1.3
-PyQt6>=6.5
+# Runtime dependencies.
+#
+# Upper bounds are deliberate: the codebase has not been validated against
+# opencv 5.x or mediapipe 1.x, and open-ended floors previously allowed those
+# majors to be pulled in silently.
+#
+# numpy is >=2.3 because no numpy 1.x wheel exists for CPython 3.14; the
+# application code uses no API removed in numpy 2.0.
+
+opencv-python>=4.8,<5
+
+# Transitive requirement of mediapipe. Pinned explicitly to keep its major
+# aligned with opencv-python: both ship the same `cv2` package, and mismatched
+# majors collide. Left unpinned, this resolves to 5.x against opencv-python 4.x.
+opencv-contrib-python>=4.8,<5
+
+mediapipe>=0.10.30,<1.0
+numpy>=2.3,<3
+scikit-learn>=1.3,<2
+PyQt6>=6.5,<7
+
+# scipy was previously declared but is never imported by application code.
+# It still arrives transitively via scikit-learn.
