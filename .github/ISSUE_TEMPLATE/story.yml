@@ -1,0 +1,89 @@
+name: User Story
+description: A unit of deliverable work from the implementation plan
+title: "[Story] "
+labels: ["story"]
+body:
+  - type: input
+    id: epic
+    attributes:
+      label: Epic
+      description: Epic number and name from the implementation plan
+      placeholder: "Epic 1: Test Harness Foundation"
+    validations:
+      required: true
+
+  - type: input
+    id: story-id
+    attributes:
+      label: Story ID
+      description: Story identifier as it appears in docs/plans/implementation-plan.md
+      placeholder: "1.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: story-points
+    attributes:
+      label: Story Points
+      description: Size estimate — must match the size label applied
+      options:
+        - "1 (XS)"
+        - "2 (S)"
+        - "3 (M)"
+        - "5 (M)"
+        - "8 (L)"
+        - "13 (XL — split before starting)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Who needs this, what they need, and why
+      placeholder: |
+        As a <role>
+        I want <capability>
+        So that <benefit>
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Testable conditions. Every line must be objectively verifiable.
+      placeholder: |
+        - [ ] Given <context>, when <action>, then <outcome>
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: e2e-coverage
+    attributes:
+      label: E2E Coverage
+      description: Which end-to-end scenarios this story must be covered by
+      placeholder: |
+        - Calibration completes with all 9 targets accepted
+        - Gaze prediction stays within tolerance after head movement
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: dod
+    attributes:
+      label: Definition of Done
+      options:
+        - label: Unit tests written alongside the code (never postponed)
+          required: false
+        - label: Unit test coverage ≥ 85%
+          required: false
+        - label: Integration tests passing
+          required: false
+        - label: Actual test output pasted as evidence in the story artifact
+          required: false
+        - label: Code reviewed via aire-review-code
+          required: false
+        - label: docs/status.md updated (Story Tracker Start/End, Quality Metrics)
+          required: false
