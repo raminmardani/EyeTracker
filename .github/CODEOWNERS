@@ -1,0 +1,7 @@
+# CODEOWNERS — EyeTracker
+#
+# Sole maintainer at present. Per-area rules should be added here when
+# additional collaborators gain write access to the repository.
+
+# Default owner for everything
+*   @raminmardani

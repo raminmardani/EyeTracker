@@ -1,0 +1,37 @@
+name: Task
+description: Non-story work — chore, spike, refactor, or infrastructure change
+title: "[Task] "
+labels: ["task"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - chore
+        - spike / investigation
+        - refactor / tech-debt
+        - infrastructure / DevOps
+        - documentation
+        - test-only
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs doing and why it is needed now
+    validations:
+      required: true
+
+  - type: textarea
+    id: done-when
+    attributes:
+      label: Done When
+      description: Objectively checkable completion conditions
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true

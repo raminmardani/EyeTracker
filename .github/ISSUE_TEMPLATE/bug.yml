@@ -1,0 +1,81 @@
+name: Bug Report
+description: A defect in existing behaviour
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: input
+    id: parent-story
+    attributes:
+      label: Parent Story
+      description: Story ID this defect was found against, or "none" if found outside a story
+      placeholder: "1.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: Apply the matching severity:* label after creating the issue
+      options:
+        - "critical — unusable, data loss, or crash on the primary path"
+        - "high — core feature broken, no workaround"
+        - "medium — feature degraded, workaround exists"
+        - "low — cosmetic or edge case"
+    validations:
+      required: true
+
+  - type: input
+    id: os-python
+    attributes:
+      label: OS / Python version
+      description: Operating system and Python interpreter version
+      placeholder: "Windows 11 Pro 26200 / Python 3.12.4"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is wrong, and what you expected instead
+      placeholder: |
+        Expected:
+        Actual:
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Numbered, deterministic steps starting from a clean launch
+      placeholder: |
+        1. Run `python main.py`
+        2. Complete calibration
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Traceback, log output, screenshots, or screen recording
+      placeholder: Paste the full traceback or attach a screenshot
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Camera model and resolution, monitor layout and DPI scaling, and dependency versions
+      placeholder: |
+        Camera: Logitech C920 @ 1280x720 / 30 fps
+        Display: 2560x1440, 150% scaling, single monitor
+        mediapipe: 0.10.33
+        opencv-python: 4.11.0
+        PyQt6: 6.7.1
+    validations:
+      required: false
