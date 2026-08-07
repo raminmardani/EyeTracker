@@ -47,3 +47,6 @@ Thumbs.db
 desktop.ini
 .idea/
 *.swp
+
+# AIRE parallel-wave runtime signals (created by aire-dev-implement)
+docs/plans/.parallel/
