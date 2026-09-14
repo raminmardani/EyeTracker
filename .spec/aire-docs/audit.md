@@ -452,3 +452,27 @@ if: always() + continue-on-error. 🔴 Verified NO token and NO host URL in any 
 both read from secrets/vars. Setup gate presented to the user; awaiting proceed|skip.
 
 ---
+
+## SonarQube Setup Gate — SKIPPED by user
+
+**Timestamp**: 2026-09-14T18:52:18Z
+**User Email**: ramin.mardani@3pillarglobal.com
+**AIRE VERSION**: 1.0
+
+**Complete Raw Input (user)**:
+```
+skip
+what is a sonarqube
+```
+
+**Decision**: `skip`. `.evals/config.json` `sonarqube.enabled` stays `false` — the file is
+unchanged, so the generated artifact stays byte-identical/deterministic. The scan steps remain
+wired and dormant: the Sonar step reads `enabled` at runtime, prints "not enabled - skipping"
+and exits 0, so it never fails a PR. Enabling later is a one-word config change plus the two
+repository values — no regeneration.
+
+**Security posture is unaffected**: SonarQube is ADDITIVE (eval-framework.md 2.1). The two
+non-optional layers still gate fully — D3 semgrep (deterministic) and the Security Baseline
+review + J2 judge (semantic).
+
+---
