@@ -1,0 +1,51 @@
+{
+  "gate": "J1",
+  "score": 1.0,
+  "rubricVersion": "1.0.0",
+  "judgeModel": "claude-opus-5",
+  "naCriteria": [
+    "ARCH-01",
+    "ARCH-02",
+    "ARCH-03",
+    "ARCH-04"
+  ],
+  "renormalisedFrom": 0.15,
+  "criteria": [
+    {
+      "id": "ARCH-01",
+      "weight": 0.25,
+      "score": "N/A",
+      "citation": null,
+      "note": "The diff contains no changes to main.py or eye_tracker/overlay.py, and introduces no frame_gate module. Only eval-framework scaffolding (.evals/config.json, rubrics, static_evals.py), .gitignore, .mcp.json, and AIRE planning/audit/evidence documents are present. The unification work this criterion governs is not exercised by this diff."
+    },
+    {
+      "id": "ARCH-02",
+      "weight": 0.25,
+      "score": "N/A",
+      "citation": null,
+      "note": "No threshold call site is touched and no test file appears in the diff. There is no pre-change literal versus post-change literal comparison available to evaluate, so the envelope-preservation criterion cannot be exercised."
+    },
+    {
+      "id": "ARCH-03",
+      "weight": 0.2,
+      "score": "N/A",
+      "citation": null,
+      "note": "Neither frame_gate.py, frame_stats.py nor logging_setup.py is created or modified in this diff. .evals/scripts/static_evals.py is tooling, not an eye_tracker module, and is outside this criterion's named scope."
+    },
+    {
+      "id": "ARCH-04",
+      "weight": 0.15,
+      "score": "N/A",
+      "citation": null,
+      "note": "No new eye_tracker module is added, so there is no module whose import-time side effects can be assessed. static_evals.py does read .evals/config.json at module scope (static_evals.py:16), but it is an eval harness entry point, not one of the new application modules this criterion constrains."
+    },
+    {
+      "id": "ARCH-05",
+      "weight": 0.15,
+      "score": 1.0,
+      "citation": null,
+      "note": "No diagnostics code is added in this diff, and the artifacts that are added leak nothing sensitive: the evidence JSON records only gate names, counts and tool output, and the D7 secrets collector deliberately stores a truncated hashed_secret rather than any raw value (static_evals.py:186). No frame buffer, landmark array or image data appears anywhere in the diff."
+    }
+  ],
+  "attempt": 1
+}

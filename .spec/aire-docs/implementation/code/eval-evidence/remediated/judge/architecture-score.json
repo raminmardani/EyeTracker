@@ -1,0 +1,51 @@
+{
+  "gate": "J1",
+  "score": 1.0,
+  "rubricVersion": "1.0.0",
+  "judgeModel": "claude-opus-5",
+  "naCriteria": [
+    "ARCH-01",
+    "ARCH-02",
+    "ARCH-03",
+    "ARCH-04"
+  ],
+  "renormalisedFrom": 0.15,
+  "criteria": [
+    {
+      "id": "ARCH-01",
+      "weight": 0.25,
+      "score": "N/A",
+      "citation": "",
+      "note": "The diff contains only AIRE scaffolding (.evals/ config, rubrics, static_evals.py, .gitignore, .mcp.json, aire-state.md, audit.md, eval evidence). No change to main.py or eye_tracker/overlay.py and no frame_gate module is present, so the single-definition constraint cannot be exercised. The 0.16/0.55/0.58/0.45/0.60/0.70 values appear only as rubric prose in .evals/rubrics/architecture-rubric.json, which is the criterion text itself, not a frame-acceptance definition."
+    },
+    {
+      "id": "ARCH-02",
+      "weight": 0.25,
+      "score": "N/A",
+      "citation": "",
+      "note": "No threshold call site is changed and no unification code or boundary-value test appears in the diff; the envelope-preservation constraint has nothing to score against. Absence of the story implementation is not a violation of it."
+    },
+    {
+      "id": "ARCH-03",
+      "weight": 0.2,
+      "score": "N/A",
+      "citation": "",
+      "note": "None of frame_gate.py, frame_stats.py or logging_setup.py exists in this diff. The only new Python file is .evals/scripts/static_evals.py, a tooling script outside the eye_tracker package and outside the criterion's named scope."
+    },
+    {
+      "id": "ARCH-04",
+      "weight": 0.15,
+      "score": "N/A",
+      "citation": "",
+      "note": "No new eye_tracker module is added, so no module-scope import behaviour for the constrained modules can be observed. static_evals.py does read .evals/config.json at module scope (.evals/scripts/static_evals.py:16), but it is an eval harness, not one of the constrained new modules."
+    },
+    {
+      "id": "ARCH-05",
+      "weight": 0.15,
+      "score": 1.0,
+      "citation": "",
+      "note": "The diff does add logging/diagnostic output surfaces and none carry frame or biometric data. static_evals.py prints and persists only gate names, counts, file paths, rule ids and truncated tool messages (.evals/scripts/static_evals.py:249-262), and D7 records only hashed_secret truncated to 32 chars (.evals/scripts/static_evals.py:162), never a plaintext secret. The evidence JSON under .spec/aire-docs/implementation/code/eval-evidence/ contains dependency and licence inventories only \u2014 no frame buffer, landmark array, or image data anywhere in the diff."
+    }
+  ],
+  "attempt": 1
+}

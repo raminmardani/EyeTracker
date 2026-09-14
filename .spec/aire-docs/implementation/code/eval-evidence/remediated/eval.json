@@ -1,0 +1,50 @@
+{
+  "evalKey": "remediated",
+  "base": "main",
+  "gates": {
+    "D1_lint": {
+      "status": "PASS",
+      "detail": "0 new (allowed delta 0)"
+    },
+    "D2_typecheck": {
+      "status": "PASS",
+      "detail": "0 new (allowed 0)"
+    },
+    "D3_sast": {
+      "status": "PASS",
+      "detail": "{'critical': 0, 'high': 0, 'medium': 0} vs allowed {'critical': 0, 'high': 0, 'medium': 5}"
+    },
+    "D4_deps": {
+      "status": "PASS",
+      "detail": "0 new advisories"
+    },
+    "D5_licences": {
+      "status": "PASS",
+      "detail": "0 disallowed"
+    },
+    "D6_complexity": {
+      "status": "PASS",
+      "detail": "0 functions over 12"
+    },
+    "D7_secrets": {
+      "status": "PASS",
+      "detail": "0 new (allowed 0)"
+    },
+    "J1": {
+      "status": "PASS",
+      "detail": "score 1.0 vs min 0.85"
+    },
+    "J2": {
+      "status": "FAIL",
+      "detail": "score 0.6471 vs min 0.85"
+    }
+  },
+  "overall": {
+    "verdict": "FAIL",
+    "checksRun": 9,
+    "checksTotal": 9,
+    "failed": [
+      "J2"
+    ]
+  }
+}

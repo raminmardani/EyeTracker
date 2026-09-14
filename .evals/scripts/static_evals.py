@@ -13,9 +13,53 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+def _safe_key(raw):
+    """SEC-06: EVAL_KEY is attacker-influenced (env var) and is joined into a
+    path that gets mkdir'd and written to. Validate it as a single safe path
+    segment; never accept separators or traversal."""
+    key = (raw or "local").strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", key) or key in (".", ".."):
+        raise SystemExit(
+            "ERROR: EVAL_KEY must be a single path segment matching "
+            "[A-Za-z0-9][A-Za-z0-9._-]{0,63} (got " + repr(raw) + "). "
+            "A branch ref contains '/' and is not a valid key.")
+    return key
+
+
+def _validated_thresholds(cfg):
+    """SEC-03: config-supplied values are consumed as gate decisions. Validate
+    type and range before any of them can decide a pass/fail."""
+    th = cfg.get("thresholds")
+    if not isinstance(th, dict):
+        raise SystemExit("ERROR: .evals/config.json has no 'thresholds' object")
+    numeric = {
+        "lintErrorsAllowedDelta": (0, 10000),
+        "typeErrorsAllowed": (0, 10000),
+        "maxCyclomaticComplexity": (1, 100),
+        "secretFindingsAllowed": (0, 10000),
+        "unitTestCoverageMin": (0.0, 100.0),
+        "behaviorScenarioPassRateMin": (0.0, 100.0),
+        "llmJudgeArchitectureScoreMin": (0.0, 1.0),
+        "llmJudgeSecurityScoreMin": (0.0, 1.0),
+    }
+    for name, (lo, hi) in numeric.items():
+        if name not in th:
+            continue
+        v = th[name]
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            raise SystemExit("ERROR: threshold " + name + " must be numeric, got "
+                             + type(v).__name__)
+        if not (lo <= v <= hi):
+            raise SystemExit("ERROR: threshold " + name + "=" + str(v)
+                             + " outside [" + str(lo) + ", " + str(hi) + "]")
+    if not isinstance(th.get("disallowedLicenses", []), list):
+        raise SystemExit("ERROR: disallowedLicenses must be a list")
+    return th
+
+
 CFG = json.loads((ROOT / ".evals/config.json").read_text(encoding="utf-8"))
-TH = CFG["thresholds"]
-KEY = os.environ.get("EVAL_KEY") or "local"
+TH = _validated_thresholds(CFG)
+KEY = _safe_key(os.environ.get("EVAL_KEY"))
 EV = ROOT / ".spec/aire-docs/implementation/code/eval-evidence" / KEY
 VENV = ROOT / ".venv/Scripts"
 
@@ -26,8 +70,9 @@ def tool(name):
 
 
 def run(cmd, cwd=None):
-    p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
-    return p.returncode, p.stdout, p.stderr
+    p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+    return p.returncode, p.stdout or "", p.stderr or ""
 
 
 def changed_files(base):
