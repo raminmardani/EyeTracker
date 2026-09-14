@@ -1,6 +1,6 @@
 {
   "gate": "J2",
-  "score": 0.6471,
+  "score": 1.0,
   "rubricVersion": "1.0.0",
   "judgeModel": "claude-opus-5",
   "naCriteria": [
@@ -12,43 +12,43 @@
       "id": "SEC-01",
       "weight": 0.2,
       "score": 1.0,
-      "citation": ".evals/scripts/static_evals.py:0",
-      "note": "No literal credential, API key or token is introduced. .mcp.json carries only a non-secret static OAuth client_id ('helix-local-mcp-agent'), which is a public client identifier, not a secret. d7_secrets stores only detect-secrets hashed_secret values, never plaintext."
+      "citation": null,
+      "note": "No literal credential, API key, token or password is introduced. .mcp.json carries only a public static OAuth client_id ('helix-local-mcp-agent') and a solution-id header value, neither of which is a secret; config.json and both rubrics contain only thresholds and prose. D7's collector deliberately records detect-secrets' hashed_secret truncated to 32 chars (static_evals.py) rather than any raw value, so no credential reaches the evidence files either."
     },
     {
       "id": "SEC-02",
       "weight": 0.2,
       "score": 1.0,
-      "citation": ".evals/scripts/static_evals.py:0",
-      "note": "No frame buffer, landmark array, face geometry or user-identifying value is logged. The diff's logging surface is tool stdout/stderr of static analysers plus gate counts; audit.md records the operator email only in the audit trail, which the AIRE contract designates for it."
+      "citation": null,
+      "note": "Nothing in the diff logs imagery, biometrics or PII. The diagnostics added by static_evals.py and run_evals.py emit only gate names, rule ids, repo-relative file paths, counts and truncated tool messages; the judge payloads record criterion ids, scores and citations. No frame buffer, landmark array or face geometry is touched. The audit markdown names GitHub account handles and the operator email, which are the audit trail's own required identity fields, not incidental logging of user data."
     },
     {
       "id": "SEC-03",
       "weight": 0.15,
-      "score": 0.0,
-      "citation": ".evals/scripts/static_evals.py:16",
-      "note": "External input is consumed without type/range validation. config.json is read and indexed at module scope (CFG['thresholds'], TH['disallowedLicenses'], TH['maxCyclomaticComplexity']) with no schema, type or range check; EVAL_KEY (line 19) is taken from the environment and used unvalidated; sys.argv[1] base ref (line 200) is passed straight to git. A malformed or hostile config yields an unhandled KeyError/TypeError rather than a validated rejection."
+      "score": 1.0,
+      "citation": null,
+      "note": "Both entry points validate their untrusted inputs before use: _safe_key() (run_evals.py, static_evals.py) constrains the EVAL_KEY environment variable to a single anchored path segment and rejects '.'/'..' before it is joined into a written path, and _validated_thresholds() checks every config-supplied numeric threshold for type (rejecting bool) and for range against an explicit per-key interval, plus the list type of disallowedLicenses, before any of them decides a pass/fail. The judge response is likewise validated: missing criterion ids, sub-1.0 scores without a citation, and unparseable JSON all raise rather than being consumed."
     },
     {
       "id": "SEC-04",
       "weight": 0.15,
       "score": 1.0,
-      "citation": ".evals/scripts/static_evals.py:0",
-      "note": "No bare except and no unbounded retry. Every handler is a narrow `except json.JSONDecodeError` that returns the raw tool output as evidence rather than swallowing silently; the worktree is removed in a finally block; failures propagate as non-zero exit plus a written failed-gates.txt."
+      "citation": null,
+      "note": "No bare except and no unbounded retry. Collectors catch json.JSONDecodeError narrowly and return the raw tool output as evidence instead of swallowing it; the judge retry loop is a fixed two-attempt 'for attempt in (1, 2)' that raises SystemExit with the last error rather than looping or degrading to N/A; the git worktree is removed in a finally block; verdict() raises SystemExit for an unknown gate instead of defaulting to PASS. The broad 'except Exception' in score_rubric captures the message into last_err, writes the raw response to evidence, and surfaces it on exhaustion, so nothing is silently discarded. Error text is written to local evidence files for the operator, not returned to an untrusted consumer."
     },
     {
       "id": "SEC-05",
       "weight": 0.15,
       "score": "N/A",
-      "citation": "",
-      "note": "The diff adds no dependency manifest entry \u2014 no requirements.txt, pyproject, package.json or lockfile change appears. The pip-licenses/pip-audit JSON evidence files are tool output recording an already-installed environment, not dependency declarations, so the criterion cannot be exercised."
+      "citation": null,
+      "note": "The diff adds no dependency manifest entry at all - no requirements.txt, pyproject.toml, package.json or lockfile change appears. The new Python modules import only stdlib (json, os, re, shutil, subprocess, sys, tempfile, pathlib) and shell out to already-installed tools. With no dependency added, the criterion cannot be exercised by this diff."
     },
     {
       "id": "SEC-06",
       "weight": 0.15,
-      "score": 0.0,
-      "citation": ".evals/scripts/static_evals.py:20",
-      "note": "Config/env-supplied input is joined into a path without normalisation or containment. EV = ROOT / '.spec/.../eval-evidence' / KEY uses the unvalidated EVAL_KEY env var as a path segment; a value such as '../../..' or an absolute path makes pathlib's / operator escape or replace the intended evidence root, and line 244 then mkdir -p's and writes files there. No resolve()+is_relative_to containment check is present. Line 133 in d5_licences and line 36 changed_files also feed externally-derived names into paths, but EVAL_KEY is the direct traversal vector."
+      "score": 1.0,
+      "citation": null,
+      "note": "The one place external input reaches a path is EVAL_KEY, and it is contained before use: _safe_key() requires a full match of [A-Za-z0-9][A-Za-z0-9._-]{0,63} - a character class that admits no '/' or '\\\\' - and additionally rejects '.' and '..', so the join into ROOT/.spec/aire-docs/.../eval-evidence/<key> cannot escape that root. Every other path is built from the ROOT constant resolved from __file__ plus literal segments; the base ref from argv is passed to git as an argument, not joined into a filesystem path; and the temp prompt file uses tempfile.NamedTemporaryFile with an unlinking finally."
     }
   ],
   "attempt": 1

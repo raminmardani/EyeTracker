@@ -396,3 +396,59 @@ disclosed rather than silently degraded.
 **Smoke branch deleted** after evidence capture; back on the epic branch.
 
 ---
+
+## STOP CHECKPOINT Step 1.6 — CI Pipeline + Judge Gates + Self-Repair
+
+**Timestamp**: 2026-09-14T18:49:58Z
+**User Email**: ramin.mardani@3pillarglobal.com
+**AIRE VERSION**: 1.0
+
+**J1/J2 judge gates — PROVEN BLOCKING.**
+- Run A: J1 1.0 PASS; **J2 0.6471 FAIL** (min 0.85), exit 1. Findings, each with a citation:
+  SEC-03 0.0 @ static_evals.py:16 (config input consumed without type/range validation);
+  SEC-06 0.0 @ static_evals.py:20 (unvalidated EVAL_KEY env var joined into a path that is
+  mkdir'd and written to — a genuine traversal: `EVAL_KEY=../../../escaped` escaped the root).
+- SEC-05 returned "N/A" and was EXCLUDED with weights renormalised from 0.85 — never scored 0.
+- Remediated (commit 578c959): EVAL_KEY validated as a single path segment; thresholds
+  type/range checked before any can decide a verdict. Traversal key now exits 2 with no
+  directory created.
+- Run B on the committed fix: **J1 1.0, J2 1.0, verdict PASS, exit 0.** Loop closed.
+- 🔴 Note: after patching, J2 initially still failed with identical citations because the judge
+  scores `git diff main...HEAD` — the COMMITTED diff. The fix was invisible until committed.
+  Correct behaviour, recorded because it looks like a false negative and is not.
+
+**Two REAL defects the dry-run caught before any CI run** (4.0.1a — "do not commit scripts that
+have never run"):
+1. UnicodeDecodeError — Windows cp1252 could not decode the UTF-8 diff. Fixed with explicit
+   encoding="utf-8", errors="replace" on every subprocess.
+2. WinError 206 — a 60KB rubric+diff prompt exceeded the 32KB Windows command-line limit. Fixed
+   by delivering the prompt via stdin instead of argv. Neither is visible to a YAML linter.
+
+**auto-fix-agent — V19 PROVEN on 4 cases, all exit NON-ZERO, each naming what was missing**:
+absent failed-gates.txt → exit 2; empty failed-gates.txt → exit 2; no base ref → exit 2;
+only not-a-code-defect gates (D5_licences) → triaged as DEFERRED, exit 2. eval.json absence was
+treated as a note, never a precondition (6.5).
+
+**CI pipeline generated**: .github/workflows/agentic-eval-pipeline.yml — 4 stages + self-repair.
+
+**V1–V21 validation results**:
+- V1 YAML parses PASS · V3 scripts exist PASS · V6 permissions PASS · V7 delta-scoped PASS
+- V10 trigger PASS [main, epic/**, bug/**, enh/**] · V14 no placeholders PASS
+- V15 upload+download artifact PASS · V16 9 version checks PASS · V20 no deferred N/A PASS
+- **V2 actionlint: NOT AVAILABLE — recorded, NOT claimed.**
+- **V4 FAILED genuinely**: .evals/behavior/run.sh was referenced by Stage 2 but absent. Created
+  it plus the Containerfile (Artifact Ownership: create if missing). First version had a bash
+  syntax error caught by `bash -n` and was rewritten — a script that has never run is not shipped.
+- **V8 and V11 reported FAIL as FALSE POSITIVES OF MY OWN VALIDATOR**: both greps matched the
+  workflow's own prohibition COMMENTS ("No `|| true` anywhere above", "NEVER github.head_ref").
+  Re-checked with comments stripped: 0 and 0. EVAL_KEY is derived from the PR number
+  (`pr-<N>`) or the sha (`push-<12>`), never a branch ref.
+
+**Behaviour gate**: run.sh + Containerfile created. With no container runtime AND no behave, it
+exits 1 with "ERROR ... never N/A" — it fails honestly rather than degrading to N/A.
+
+**SonarQube**: sonar-project.properties generated; scan steps wired as the LAST gate step with
+if: always() + continue-on-error. 🔴 Verified NO token and NO host URL in any committed file —
+both read from secrets/vars. Setup gate presented to the user; awaiting proceed|skip.
+
+---

@@ -1,6 +1,6 @@
 # Eval Scorecard - remediated
 
-**Verdict: FAIL**
+**Verdict: PASS**
 
 | Gate | Status | Detail |
 |---|---|---|
@@ -12,4 +12,4 @@
 | D6_complexity | PASS | 0 functions over 12 |
 | D7_secrets | PASS | 0 new (allowed 0) |
 | J1 | PASS | score 1.0 vs min 0.85 |
-| J2 | **FAIL** | score 0.6471 vs min 0.85 |
+| J2 | PASS | score 1.0 vs min 0.85 |
