@@ -1,0 +1,12 @@
+{
+  "rubricVersion": "1.0.0",
+  "source": "OWASP Top 10 2021 + AIRE Security Baseline SECURITY-01..16",
+  "criteria": [
+    { "id": "SEC-01", "constraint": "No secret, token, key or credential appears in source, config or logs.", "verifiableAs": "Scores 0 if the diff introduces a literal credential, API key, or token, or writes one to a log.", "weight": 0.20, "source": "SECURITY-11" },
+    { "id": "SEC-02", "constraint": "Logs and diagnostics must not contain PII, imagery, or biometric data.", "verifiableAs": "Scores 0 if the diff logs a frame buffer, landmark array, face geometry, or user-identifying value.", "weight": 0.20, "source": "SECURITY-02, SECURITY-16" },
+    { "id": "SEC-03", "constraint": "Untrusted input is validated before use.", "verifiableAs": "Scores 0 if the diff consumes external input (file, env, network, config) without validating type and range.", "weight": 0.15, "source": "SECURITY-04" },
+    { "id": "SEC-04", "constraint": "Errors are handled without leaking internal state to the user or to an unbounded retry.", "verifiableAs": "Scores 0 if the diff adds a bare except that swallows an error silently, or an unbounded retry loop.", "weight": 0.15, "source": "SECURITY-16" },
+    { "id": "SEC-05", "constraint": "No new dependency is introduced without a pinned, vulnerability-scanned version.", "verifiableAs": "Scores 0 if the diff adds an unpinned dependency or one with a known critical/high advisory.", "weight": 0.15, "source": "SECURITY-13" },
+    { "id": "SEC-06", "constraint": "File and path handling must not permit traversal outside an intended root.", "verifiableAs": "Scores 0 if the diff joins user- or config-supplied input into a path without normalisation and containment.", "weight": 0.15, "source": "SECURITY-06" }
+  ]
+}

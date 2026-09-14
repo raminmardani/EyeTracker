@@ -1,0 +1,42 @@
+{
+  "rubricVersion": "1.0.0",
+  "source": ".spec/architecture.md Section 10",
+  "derivation": "mechanical - one constraint, one criterion, same wording, same weights",
+  "criteria": [
+    {
+      "id": "ARCH-01",
+      "constraint": "The frame-acceptance envelope must have exactly one definition; the live envelope is a named deviation from the base, never an independent copy.",
+      "verifiableAs": "Scores 0 if a frame-acceptance numeric literal (0.16, 0.55, 0.58, 0.45, 0.60, 0.70) appears in main.py or eye_tracker/overlay.py in the changed diff, or if two independent literal blocks remain.",
+      "weight": 0.25,
+      "source": "REQ-F-01.1, REQ-F-01.2"
+    },
+    {
+      "id": "ARCH-02",
+      "constraint": "Unification must preserve the physical envelope. No accept/reject verdict may change.",
+      "verifiableAs": "Scores 0 if any threshold VALUE differs from the pre-change literal at the same call site, or if no test drives pre-change literals against the new module across boundary values.",
+      "weight": 0.25,
+      "source": "REQ-F-01.3, REQ-NF-02"
+    },
+    {
+      "id": "ARCH-03",
+      "constraint": "New modules must be stdlib-only leaves with no internal importers.",
+      "verifiableAs": "Scores 0 if frame_gate.py, frame_stats.py or logging_setup.py imports a third-party package, or imports another eye_tracker module.",
+      "weight": 0.20,
+      "source": "REQ-NF-04, Atlas layering"
+    },
+    {
+      "id": "ARCH-04",
+      "constraint": "New modules must import with no camera, display, model download or network access.",
+      "verifiableAs": "Scores 0 if importing any new module triggers I/O, device access, or a network call at module scope.",
+      "weight": 0.15,
+      "source": "REQ-NF-03"
+    },
+    {
+      "id": "ARCH-05",
+      "constraint": "Diagnostics must not leak frame contents, imagery or personally identifying data.",
+      "verifiableAs": "Scores 0 if any log or counter record includes a frame buffer, landmark array, or image data.",
+      "weight": 0.15,
+      "source": "REQ-NF-05, Security Baseline"
+    }
+  ]
+}

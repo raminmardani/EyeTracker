@@ -1,0 +1,85 @@
+{
+  "evalKey": "smoke-injected",
+  "base": "main",
+  "scope": "changed-files",
+  "changedFiles": [
+    "eye_tracker/smoke_defect.py",
+    "eye_tracker/tracker.py"
+  ],
+  "gates": {
+    "D1_lint": {
+      "status": "FAIL",
+      "detail": "4 new (allowed delta 0)",
+      "newFindings": 4,
+      "preExisting": 2,
+      "new": [
+        "F401 :: eye_tracker/smoke_defect.py :: `json` imported but unused",
+        "F401 :: eye_tracker/smoke_defect.py :: `os` imported but unused",
+        "F401 :: eye_tracker/smoke_defect.py :: `sys` imported but unused",
+        "I001 :: eye_tracker/smoke_defect.py :: Import block is un-sorted or un-formatted"
+      ]
+    },
+    "D2_typecheck": {
+      "status": "FAIL",
+      "detail": "1 new (allowed 0)",
+      "newFindings": 1,
+      "preExisting": 0,
+      "new": [
+        "return-value :: eye_tracker/smoke_defect.py :: Incompatible return value type (got \"int\", expected \"str\")"
+      ]
+    },
+    "D3_sast": {
+      "status": "PASS",
+      "detail": "{'critical': 0, 'high': 0, 'medium': 0} vs allowed {'critical': 0, 'high': 0, 'medium': 5}",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": []
+    },
+    "D4_deps": {
+      "status": "PASS",
+      "detail": "0 new advisories",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": []
+    },
+    "D5_licences": {
+      "status": "PASS",
+      "detail": "0 disallowed",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": []
+    },
+    "D6_complexity": {
+      "status": "FAIL",
+      "detail": "1 functions over 12",
+      "newFindings": 1,
+      "preExisting": 0,
+      "new": [
+        "C901 :: eye_tracker/smoke_defect.py :: `tangled` is too complex (17 > 12)"
+      ]
+    },
+    "D7_secrets": {
+      "status": "FAIL",
+      "detail": "3 new (allowed 0)",
+      "newFindings": 3,
+      "preExisting": 0,
+      "new": [
+        "AWS Access Key :: eye_tracker\\smoke_defect.py :: d70eab08607a4d05faa2d0d664720659",
+        "Base64 High Entropy String :: eye_tracker\\smoke_defect.py :: d70eab08607a4d05faa2d0d664720659",
+        "Secret Keyword :: eye_tracker\\smoke_defect.py :: d70eab08607a4d05faa2d0d664720659"
+      ],
+      "toolDeviation": "detect-secrets substituted for gitleaks: no wheel available and no container runtime for the OCI rung. Documented deviation, not N/A."
+    }
+  },
+  "overall": {
+    "verdict": "FAIL",
+    "checksRun": 7,
+    "checksTotal": 7,
+    "failed": [
+      "D1_lint",
+      "D2_typecheck",
+      "D6_complexity",
+      "D7_secrets"
+    ]
+  }
+}

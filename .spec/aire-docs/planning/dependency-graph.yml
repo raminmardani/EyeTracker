@@ -1,0 +1,27 @@
+# Dependency Graph — EVAL-1
+# 'requires' is INFERRED from real file/region overlap, never asked.
+team_size: 2
+stories:
+  "1.1":
+    title: "Unified frame-acceptance envelope"
+    requires: []
+    enables: ["1.2"]
+    touches: ["eye_tracker/frame_gate.py (new)", "eye_tracker/overlay.py:182-188", "main.py:94-100"]
+  "1.2":
+    title: "Frame rejections counted by reason"
+    requires: ["1.1"]
+    enables: []
+    touches: ["eye_tracker/frame_stats.py (new)", "main.py::_on_feat (all reject paths incl. 116)"]
+    rationale: >
+      1.2 attaches a reason to each rejection branch that 1.1 restructures in main.py::_on_feat.
+      Same function, same lines - a real edge, not a preference.
+  "1.3":
+    title: "Structured logging replaces print diagnostics"
+    requires: []
+    enables: []
+    touches: ["eye_tracker/logging_setup.py (new)", "eye_tracker/tracker.py", "eye_tracker/overlay.py:206-217", "main.py:56"]
+    rationale: >
+      Independent of 1.1 and 1.2. Overlaps overlay.py only in a different region (prints at 206-217
+      vs the gate at 182-188) - git merges these cleanly. main.py:116 is deliberately excluded and
+      owned by 1.2 so the two never edit one block.
+ready_at_start: ["1.1", "1.3"]

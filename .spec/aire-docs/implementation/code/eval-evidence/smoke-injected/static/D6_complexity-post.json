@@ -1,0 +1,21 @@
+[
+  {
+    "cell": null,
+    "code": "C901",
+    "end_location": {
+      "column": 12,
+      "row": 8
+    },
+    "filename": "C:\\Users\\ramin.mardani\\AppData\\Local\\Temp\\claude\\c--Users-ramin-mardani-Documents-Helix-AIRE\\c96b1c80-e84c-4562-b9c5-0a5ee4dddf50\\scratchpad\\EyeTracker-eval\\eye_tracker\\smoke_defect.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 8
+    },
+    "message": "`tangled` is too complex (17 > 12)",
+    "name": "complex-structure",
+    "noqa_row": 8,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/complex-structure"
+  }
+]
