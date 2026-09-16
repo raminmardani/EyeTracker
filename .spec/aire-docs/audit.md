@@ -476,3 +476,29 @@ non-optional layers still gate fully — D3 semgrep (deterministic) and the Secu
 review + J2 judge (semantic).
 
 ---
+
+## 🛑 STOP CHECKPOINT COMPLETE — Development Handoff
+
+**Timestamp**: 2026-09-16T13:39:43Z
+**User Email**: ramin.mardani@3pillarglobal.com
+**AIRE VERSION**: 1.0
+
+State marked "Design complete — awaiting dev-implement". Stories 1.1 and 1.3 are
+🟢 Ready for Development (requires: none); 1.2 is ⛔ blocked by 1.1.
+
+🔴 **Step 3 push NOT performed.** The clone's push remote is deliberately
+`DISABLED-no-push-to-real-repo`, so the design artifacts exist only on the local epic branch.
+In a real cycle this push is what unblocks ve; here it is intentionally impossible.
+
+🔴 **Story tracker push still PENDING** — GitHub writes were denied by the auto mode classifier.
+Payload ready at planning/stories/push-payload/PUSH.sh.
+
+**OPEN ITEM flagged to the user, not resolved**: the local .venv holds cv2 5.0.0 and
+mediapipe 1.0.1, which VIOLATE the ceilings in requirements.txt (opencv-python>=4.8,<5;
+mediapipe>=0.10.30,<1.0) whose comment states the codebase has not been validated against those
+majors. CI installs from requirements.txt and will resolve correctly, so local and CI currently
+disagree. Not silently corrected.
+
+**HALTED.** Code Generation does not start on its own.
+
+---

@@ -2,7 +2,7 @@
 
 **AIRE VERSION**: 1.0
 **Workflow Type**: Epic cycle
-**Status**: ▶️ Stories generated — awaiting GATE 1 approval
+**Status**: 🛑 Design complete — awaiting dev-implement
 
 ## Tracker
 - Type: GITHUB
@@ -34,7 +34,7 @@
 
 ## Branching
 - Base Branch: main @ d28991c
-- Epic Branch: not yet cut (blocked at the Helix gate)
+- Epic Branch: epic/EVAL-1-diagnostics-threshold-unification (cut from main)
 - 🔒 Push remote deliberately disabled: `DISABLED-no-push-to-real-repo`
 
 ## Extension Configuration
@@ -44,21 +44,21 @@
 ## Stage Progress
 - [x] Workspace Detection
 - [x] 🧭 Helix MCP Gate — bound; coverage PARTIAL
-- [ ] Reverse Engineering (existing artifacts found under docs/ — reuse candidate)
-- [ ] Requirements Analysis
-- [ ] User Stories (GATE 1)
-- [ ] Dependency Graph
-- [ ] Workflow Planning
-- [ ] Application Design
-- [ ] System-Level Design stages
-- [ ] STOP CHECKPOINT — .evals/ + rubrics + CI pipeline  ← the target of this test
+- [x] Reverse Engineering (existing artifacts found under docs/ — reuse candidate)
+- [x] Requirements Analysis
+- [x] User Stories (GATE 1)
+- [x] Dependency Graph
+- [x] Workflow Planning
+- [x] Application Design
+- [x] System-Level Design stages
+- [x] STOP CHECKPOINT — .evals/ + rubrics + CI pipeline  ✅ COMPLETE (all gates dry-run)
 
 ## Story Tracker
 
 | Story | Title | Requires | Tracker ID | Status | PR | Merged | Start | End | Recorded |
 |-------|-------|----------|------------|--------|----|--------|-------|-----|----------|
-| 1.1 | Unified frame-acceptance envelope | none | — | ⏸️ Awaiting GATE 1 | — | — | | | 2026-09-14 17:48 |
-| 1.2 | Frame rejections counted by reason | 1.1 | — | ⏸️ Awaiting GATE 1 | — | — | | | 2026-09-14 17:48 |
-| 1.3 | Structured logging replaces print diagnostics | none | — | ⏸️ Awaiting GATE 1 | — | — | | | 2026-09-14 17:48 |
+| 1.1 | Unified frame-acceptance envelope | none | — (push pending) | 🟢 Ready for Development | — | — | | | 2026-09-14 17:48 |
+| 1.2 | Frame rejections counted by reason | 1.1 | — (push pending) | ⛔ Blocked by 1.1 | — | — | | | 2026-09-14 17:48 |
+| 1.3 | Structured logging replaces print diagnostics | none | — (push pending) | 🟢 Ready for Development | — | — | | | 2026-09-14 17:48 |
 
 - **team_size**: 2 (fixed) · **ready at start**: 1.1, 1.3
