@@ -1,0 +1,55 @@
+{
+  "gate": "J2",
+  "score": 0.6471,
+  "rubricVersion": "1.0.0",
+  "judgeModel": "claude-opus-5",
+  "naCriteria": [
+    "SEC-05"
+  ],
+  "renormalisedFrom": 0.85,
+  "criteria": [
+    {
+      "id": "SEC-01",
+      "weight": 0.2,
+      "score": 1.0,
+      "citation": null,
+      "note": "No literal credential, API key or token is introduced. .mcp.json carries only a public client_id ('helix-local-mcp-agent') for a static OAuth client registration, which is not a secret, and no token is written to any file or log. config.json and the rubrics contain only thresholds and text. The audit narrative references gh auth accounts by username but records no credential."
+    },
+    {
+      "id": "SEC-02",
+      "weight": 0.2,
+      "score": 1.0,
+      "citation": null,
+      "note": "Diagnostics added by static_evals.py emit only rule ids, file paths, counts and truncated tool messages; D7 stores detect-secrets' hashed_secret (a hash, not the value) truncated to 32 chars. No frame buffer, landmark array, face geometry or biometric value is logged anywhere in the diff."
+    },
+    {
+      "id": "SEC-03",
+      "weight": 0.15,
+      "score": 0.0,
+      "citation": ".evals/scripts/static_evals.py:16",
+      "note": "Config-supplied input is consumed without type/range validation: CFG = json.loads(config.json) then TH = CFG['thresholds'] and every threshold (TH['lintErrorsAllowedDelta'], TH['maxCyclomaticComplexity'] interpolated into a ruff --config string at line ~140, TH['disallowedLicenses'] used as a set) is used directly with no type or range check. EVAL_KEY (static_evals.py:19) is read from the environment and used unvalidated. sys.argv[1] base ref (static_evals.py:~200) is passed straight to git worktree add with no validation of form."
+    },
+    {
+      "id": "SEC-04",
+      "weight": 0.15,
+      "score": 1.0,
+      "citation": null,
+      "note": "No bare except and no unbounded retry. Each collector catches json.JSONDecodeError narrowly and returns the raw tool output as evidence rather than swallowing it; the worktree teardown is in a finally block; verdict() raises SystemExit on an unknown gate rather than defaulting to PASS; run-static-evals.sh uses set -uo pipefail and a required-arg guard."
+    },
+    {
+      "id": "SEC-05",
+      "weight": 0.15,
+      "score": "N/A",
+      "citation": null,
+      "note": "The diff adds no dependency manifest entry and no install step \u2014 static_evals.py only invokes tools assumed present and the D4/D5 evidence files are captured tool output, not declarations. No pinning decision is exercised by this diff."
+    },
+    {
+      "id": "SEC-06",
+      "weight": 0.15,
+      "score": 0.0,
+      "citation": ".evals/scripts/static_evals.py:20",
+      "note": "EV = ROOT / '.spec/.../eval-evidence' / KEY joins the unvalidated EVAL_KEY environment variable into a path that is then mkdir'd and written to (EV/'static'/'baseline' at ~line 196, EV/'static-evals.json' at ~line 258) with no normalisation or containment check against ROOT; EVAL_KEY='../../..' escapes the intended evidence root. Similarly base_files entries from git output are joined as (wt / f) at ~line 210 without containment."
+    }
+  ],
+  "attempt": 1
+}

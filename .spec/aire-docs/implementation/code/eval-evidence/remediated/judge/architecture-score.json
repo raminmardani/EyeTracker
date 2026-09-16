@@ -1,0 +1,51 @@
+{
+  "gate": "J1",
+  "score": 1.0,
+  "rubricVersion": "1.0.0",
+  "judgeModel": "claude-opus-5",
+  "naCriteria": [
+    "ARCH-01",
+    "ARCH-02",
+    "ARCH-03",
+    "ARCH-04"
+  ],
+  "renormalisedFrom": 0.15,
+  "criteria": [
+    {
+      "id": "ARCH-01",
+      "weight": 0.25,
+      "score": "N/A",
+      "citation": null,
+      "note": "The diff contains no change to main.py or eye_tracker/overlay.py and creates no frame-acceptance module. The only frame-acceptance literals present (0.16, 0.55, 0.58, 0.45, 0.60, 0.70) appear inside the rubric text itself (.evals/rubrics/architecture-rubric.json:10) as the criterion's own wording, not as application thresholds. The unification work this criterion governs is not exercised."
+    },
+    {
+      "id": "ARCH-02",
+      "weight": 0.25,
+      "score": "N/A",
+      "citation": null,
+      "note": "No threshold call site is touched and no test file appears in the diff, so there is no pre-change literal versus post-change value to compare and no boundary-value test to assess. The criterion cannot be exercised by this diff."
+    },
+    {
+      "id": "ARCH-03",
+      "weight": 0.2,
+      "score": "N/A",
+      "citation": null,
+      "note": "Neither frame_gate.py, frame_stats.py nor logging_setup.py is created or modified. .evals/scripts/static_evals.py and run_evals.py are eval tooling outside eye_tracker/ and outside this criterion's named scope."
+    },
+    {
+      "id": "ARCH-04",
+      "weight": 0.15,
+      "score": "N/A",
+      "citation": null,
+      "note": "No new eye_tracker module is added, so there is no module whose import-time side effects can be assessed. The eval scripts do read .evals/config.json at module scope (static_evals.py:44, run_evals.py:70) but they are harness entry points, not the new application modules this criterion constrains."
+    },
+    {
+      "id": "ARCH-05",
+      "weight": 0.15,
+      "score": 1.0,
+      "citation": null,
+      "note": "No diagnostics code is added and nothing in the diff records frame contents, imagery or identifying data. The eval collectors emit only rule ids, file paths, counts and truncated tool messages, and the D7 collector deliberately stores detect-secrets' hashed_secret truncated to 32 characters rather than any raw value (.evals/scripts/static_evals.py:213). No frame buffer, landmark array or image data appears anywhere in the diff."
+    }
+  ],
+  "attempt": 1
+}

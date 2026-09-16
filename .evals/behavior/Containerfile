@@ -1,0 +1,6 @@
+# Gherkin behaviour tiers - the SAME image locally and in CI.
+FROM docker.io/library/python:3.14-slim
+WORKDIR /work
+RUN pip install --no-cache-dir behave==1.2.6
+COPY . /work
+ENTRYPOINT ["bash", ".evals/behavior/run.sh"]

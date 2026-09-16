@@ -50,3 +50,7 @@ desktop.ini
 
 # AIRE parallel-wave runtime signals (created by aire-dev-implement)
 docs/plans/.parallel/
+
+# AIRE eval runtime output
+.evals/_run/
+.mcp.json

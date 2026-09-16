@@ -1,0 +1,22 @@
+{
+  "evalKey": "judge-clean",
+  "base": "main",
+  "gates": {
+    "J1": {
+      "status": "PASS",
+      "detail": "score 1.0 vs min 0.85"
+    },
+    "J2": {
+      "status": "FAIL",
+      "detail": "score 0.6471 vs min 0.85"
+    }
+  },
+  "overall": {
+    "verdict": "FAIL",
+    "checksRun": 2,
+    "checksTotal": 2,
+    "failed": [
+      "J2"
+    ]
+  }
+}

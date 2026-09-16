@@ -1,0 +1,1 @@
+eye_tracker\smoke_defect.py:47: error: Incompatible return value type (got "int", expected "str")  [return-value]

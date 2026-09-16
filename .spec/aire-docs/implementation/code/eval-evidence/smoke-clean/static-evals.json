@@ -1,0 +1,64 @@
+{
+  "evalKey": "smoke-clean",
+  "base": "main",
+  "scope": "changed-files",
+  "changedFiles": [],
+  "gates": {
+    "D1_lint": {
+      "status": "PASS",
+      "detail": "0 new (allowed delta 0)",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": []
+    },
+    "D2_typecheck": {
+      "status": "PASS",
+      "detail": "0 new (allowed 0)",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": []
+    },
+    "D3_sast": {
+      "status": "PASS",
+      "detail": "{'critical': 0, 'high': 0, 'medium': 0} vs allowed {'critical': 0, 'high': 0, 'medium': 5}",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": []
+    },
+    "D4_deps": {
+      "status": "PASS",
+      "detail": "0 new advisories",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": []
+    },
+    "D5_licences": {
+      "status": "PASS",
+      "detail": "0 disallowed",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": []
+    },
+    "D6_complexity": {
+      "status": "PASS",
+      "detail": "0 functions over 12",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": []
+    },
+    "D7_secrets": {
+      "status": "PASS",
+      "detail": "0 new (allowed 0)",
+      "newFindings": 0,
+      "preExisting": 0,
+      "new": [],
+      "toolDeviation": "detect-secrets substituted for gitleaks: no wheel available and no container runtime for the OCI rung. Documented deviation, not N/A."
+    }
+  },
+  "overall": {
+    "verdict": "PASS",
+    "checksRun": 7,
+    "checksTotal": 7,
+    "failed": []
+  }
+}
