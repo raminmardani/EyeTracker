@@ -1,7 +1,7 @@
 # Project Status
 
-**Last Updated**: 2026-08-07 19:03
-**Updated By**: AIRE_PRODUCT_OWNER
+**Last Updated**: 2026-08-09 16:29
+**Updated By**: AIRE_REVIEWER
 **Overall Status**: 🟢 ON TRACK
 
 ---
@@ -28,12 +28,78 @@
 | Build Cycles | ✅ Done | AIRE_BUILD_CYCLE_PLANNER | 2026-08-07 | `docs/plans/builds/` (5 cycles) + `docs/plans/build-cycles.md` | 2026-08-07 14:58 |
 | UI/UX Design | ✅ Done | AIRE_UI_UX_DESIGNER | 2026-08-07 | `docs/ui-ux/ui-ux-spec.md` | 2026-08-07 13:43 |
 | Implementation Plan | ✅ Done | AIRE_PRODUCT_OWNER | 2026-08-07 | `docs/plans/implementation-plan.md` + `docs/plans/dependency-graph.yml` + `docs/plans/stories/` — **11 of 11 story files authored**, all 7 waves, every one gate-passed | 2026-08-07 19:03 |
-| Review | ⏸️ Not Started | AIRE_REVIEWER | — | — | 2026-08-06 14:57 |
+| Epic 1: Test & Packaging Foundation | 🟡 In Progress | AIRE_DEV | 2026-08-09 | 1/6 stories done — 1.2 complete (23/23 AC, DoD gates 1–3 passed) | 2026-08-09 16:08 |
+| Epic 2: Accuracy Measurement & Baseline | ⏸️ Not Started | — | — | 0/5 stories done | 2026-08-09 16:08 |
+| Review | 🟡 In Progress | AIRE_REVIEWER | 2026-08-09 | 1/11 stories reviewed — 1.2 ❌ CHANGES REQUESTED (`docs/reviews/story-1.2-code-review-v1.md`) | 2026-08-09 16:29 |
 | QA | ⏸️ Not Started | AIRE_QA | — | — | 2026-08-06 14:57 |
 
 ---
 
 ## Current Step Details
+
+### Review — BUILDID: CYCLE-1, Story 1.2
+
+**Owner**: AIRE_REVIEWER
+**Status**: 🟡 In Progress — 1 of 11 stories reviewed
+**Started**: 2026-08-09
+**Mode**: `aire-review-code`, **INITIAL_REVIEW** (no prior review existed), all severities reported
+**Report**: `docs/reviews/story-1.2-code-review-v1.md`
+**Result**: ❌ **CHANGES REQUESTED** — 0 🔴 Blocker · **1 🟠 High** · 2 🟡 Medium · 3 🟢 Low
+
+**Progress**:
+- [x] Phase 0 — review-history check: `docs/reviews/` absent ⇒ INITIAL_REVIEW, no severity filtering ✅
+- [x] Phase 1 — story file, implementation plan, patterns §1/§13/§14/§15/§16 and the DEV self-review all read before judging ✅
+- [x] Phase 2 — full checklist: correctness, patterns, testing, documentation, security; SOLID/performance recorded as N/A **with the reason**, not silently skipped ✅
+- [x] **Evidence re-executed, not accepted** — all 12 verification commands re-run in the project `.venv`: `ruff check .` rc 0 · `ruff format --check .` rc 0 · 31 suppressed findings across 11 rules (exact distribution match) · `pytest` 2 passed rc 0 · `git diff --stat -- main.py eye_tracker/` empty · PLR0915 confirmed inert at 50 and firing once at 30 · lint gate proven to still bite on new application **and** test paths · secrets/PII, TODO and `sys.path` greps clean ✅
+- [x] Phase 3 — report written with reproduction transcripts and suggested fixes for every finding ✅
+- [x] Phase 3.5 — `docs/status.md` updated ✅
+- [x] Phase 4 — tracker updated on user confirmation: review-result comment posted to issue [#10](https://github.com/raminmardani/EyeTracker/issues/10#issuecomment-5233717461); issue **reopened**; Project 4 Status moved **Done → In Development** (option `4b16bf0a`), both re-queried and verified ✅
+
+> 🔧 **Tracker state found out of step with this file.** The Development section below records Phase D as "awaiting user choice", but issue #10 was already **CLOSED** with Project Status **Done** when the review opened. A story carrying an unreviewed 🟠 High finding cannot sit in Done, so the close-out was reversed as part of Phase 4 rather than left to contradict the review. Reopening is recorded here because it undoes a state someone deliberately set.
+
+**The one finding that blocks approval**:
+
+🟠 **ISS-001 — the permanent FR-26 guard test can pass having scanned nothing.**
+`tests/arch/test_packaging.py:32` resolves its scan root as the cwd-relative `pathlib.Path("tests")`. Run pytest from anywhere but the repository root and `rglob` yields an empty list, `offenders == []`, and the test reports **PASS** without reading a single file. Reproduced from `$TEMP`: `1 passed in 0.01s` with `Path('tests').exists() == False`. AC7 and the self-review both cite this test as the permanent assertion that no `sys.path` hack has crept back — so a green suite would be read as proof of something never checked. The sibling test in the same module is immune (it correctly uses `tmp_path` + a subprocess), which is what makes the asymmetry easy to miss. Fix is two lines: anchor on `Path(__file__).resolve().parents[1]` and `assert scanned > 0`.
+
+**Two mediums worth acting on now rather than later**:
+- 🟡 **ISS-002** — `[tool.coverage.report]` omits patterns §15's `if __name__ == "__main__":` exclusion (`main.py:140` is the live instance). No effect today because `--cov-fail-under` is deliberately absent; in CYCLE-5 it becomes a permanently unreachable slice of the ≥85% denominator.
+- 🟡 **ISS-003** — the self-review's N16 check ("files outside scope must not be touched") pastes a `git status` that omits ` M docs/plans/dependency-graph.yml`, which the story **did** modify. The amendment itself is correct and well-argued — it adds `tests/arch/test_packaging.py` to `files_touched` so the same-wave disjointness check stays truthful — but the one check whose job is to enumerate every touched file missed one and is signed ✅ PASS.
+
+**A claim checked rather than assumed, and cleared.** `"tests/*"` in `per-file-ignores` looks like it should fail to match the nested `tests/arch/test_packaging.py`, since many glob engines stop `*` at a separator. Measured both ways with a rule that actually fires (`ANN`): 3 findings without the entry, 0 with it. Ruff's `*` crosses separators — the entry is live for the whole tree. No change needed, recorded so the next reader does not re-derive it.
+
+**Coverage 0% accepted, with the waiver made auditable.** The story adds zero new production Python; the 651 statements are pre-existing modules it is forbidden to modify (AC20) and forbidden to test (Story 1.3's scope), and AC15 *requires* the threshold to be absent. What it does prove is the wiring — coverage now attaches to `eye_tracker` and `main`, impossible before because no interpreter existed. Inflating the figure would have meant measuring someone else's work.
+
+---
+
+### Development — BUILDID: CYCLE-1, Wave 1
+
+**Owner**: AIRE_DEV
+**Status**: ✅ Wave 1 complete — 1 of 1 story
+**Started**: 2026-08-09
+**Completed**: 2026-08-09
+**Mode**: `aire-dev-implement`, Dev 1, **in-one-go**. Wave 1 holds one story by design (sole seed), so the slice was a single story; the decompose-lead ruled it **atomic** and one story-agent built it.
+**Branch**: `feat/story-1.2-packaging`, off `main` @ `d28991c` — **not committed, not pushed**
+
+**Progress**:
+- [x] STEP 0 routing gate — `assignments:` present, Dev 1 slot and in-one-go mode both confirmed by the user before any read of a story file ✅
+- [x] Phase A — slice locked to wave 1 = `[1.2]`; `docs/plans/.parallel/` already git-ignored ✅
+- [x] Pre-flight — issue [#10](https://github.com/raminmardani/EyeTracker/issues/10) assigned, board Status → **In Development** (re-queried and verified), stale body refreshed from the local story file, start comment posted ✅
+- [x] Phase B — decompose-lead returned `decomposable: false` (23 AC, all assigned, 4 files reserved) and **found a blocker before any code was written**: ruff 0.16 formats Python fences inside `*.md`, so `ruff format --check .` failed on documentation and AC13 was unachievable as specified ✅
+- [x] Phase B — story-agent implemented all 23 AC, TDD, DoD gates 1–3 ✅
+- [x] Verification — `ruff check`, `ruff format --check` and `pytest` **re-run by the orchestrator**, not accepted from the worker's report ✅
+- [x] Phase C — `docs/status.md` aggregated ✅
+- [ ] Phase D — tracker close-out for #10 (In Review / In QA / Done) awaiting user choice ⏸️
+
+**Story 1.2 — three spec defects caught, not coded around**:
+
+| # | What the story said | What was true | Resolution |
+|---|---|---|---|
+| 1 | Step 5's exclude list would make `ruff format --check .` clean | ruff 0.16 formats `*.md` code fences — 20 `docs/**/*.md` files fail; **AC13 unachievable** | `"*.md"` added to `[tool.ruff.format].exclude` — formatter only, lint untouched. Counterfactual measured |
+| 2 | "30 pre-existing findings", each individually suppressed | 30 findings/10 rules at ruff's **default** `max-statements = 50`; **31 findings/11 rules** at the `max-statements = 30` AC10 mandates | Shipped `30` (AC10 is normative) with an allowlist covering all **31**. The story's own per-file-ignores already listed `overlay.py → PLR0915`, so only the round-number prose lagged |
+| 3 | TOML block contained `readme = "README.md"` | **No `README.md` exists in this repository** — setuptools hard-fails the build, so AC5 (`pip install -e`) was impossible | Key omitted, with an in-file comment recording why and the condition for restoring it |
+
+> Defect 2 is the one worth reading twice. Taking `max-statements = 50` would have made the arithmetic match the prose — and left patterns §14's complexity rule enforcing **nothing**.
 
 ### Implementation Plan — BUILDID: CYCLE-1
 
@@ -55,7 +121,6 @@
 - [x] Phase 4 — Graph re-verified after authoring: requires/enables mirrored both ways, every `requires` target in an earlier wave, wave membership matches every story's `wave` field, and `shared_files` discipline holds (`tests/conftest.py` in waves 2/3/5 — never the same wave) ✅
 - [x] Phase 4 — GitHub push pass 1: **4 issues created** (#10–#13) for waves 1–2, numbers written back into story files and the graph ✅
 - [ ] Phase 4 — Stories **1.4, 1.6 and 2.1 – 2.5 not pushed** to GitHub; `epic:2` / `wave:3`–`wave:7` labels and the Epic 2 milestone not created ⏸️
-- [x] Phase 5 — `docs/status.md` updated ✅
 - [x] Phase 5 — `docs/status.md` updated ✅
 
 **Epics and story counts**:
@@ -433,7 +498,7 @@
 
 | Cycle | BUILDID | Scope | Stories | Status | Start | End | Recorded |
 |-------|---------|-------|---------|--------|-------|-----|----------|
-| Cycle 1 | CYCLE-1 | Foundations & Measurement Baseline — packaging, test scaffold, logging infra, `.venv` rebuild, FR-33 eye-pairing, evaluation harness + **pre-fix baseline** (M0 + M1) | 0/11 | ⏸️ Not Started | — | — | 2026-08-07 17:38 |
+| Cycle 1 | CYCLE-1 | Foundations & Measurement Baseline — packaging, test scaffold, logging infra, `.venv` rebuild, FR-33 eye-pairing, evaluation harness + **pre-fix baseline** (M0 + M1) | 1/11 | 🟡 In Progress | 2026-08-09 | — | 2026-08-09 16:08 |
 | Cycle 2 | CYCLE-2 | Configuration & Head-Pose Truth — config layer, single gate definition, axis correction, de-discontinuation, pitch gating, semantics v2 (M2 + M3) | 0/— | ⏸️ Not Started | — | — | 2026-08-07 14:58 |
 | Cycle 3 | CYCLE-3 | Calibration Integrity & Recalibration — owned lifetime, cancellable machine, idempotent completion, recalibrate without restart, minimum-usable enforcement (M4 + M5) | 0/— | ⏸️ Not Started | — | — | 2026-08-07 14:58 |
 | Cycle 4 | CYCLE-4 | No Silent Failures — `StatusWindow`, rejection accounting, `print()` → logging, dot hiding, capture robustness, `viable` enforced (M6) | 0/— | ⏸️ Not Started | — | — | 2026-08-07 14:58 |
@@ -449,7 +514,7 @@ _Cycles 2–5 show `0/—` because story decomposition was scoped to **CYCLE-1 o
 | BUILDID | Story | Title | Start | End | Recorded |
 |---------|-------|-------|-------|-----|----------|
 | CYCLE-1 | 1.1 | Eye-pairing investigation — do landmark and blendshape signals describe the same eye | — | — | 2026-08-07 17:38 |
-| CYCLE-1 | 1.2 | Packaging metadata, tool configuration and a rebuilt development environment | — | — | 2026-08-07 17:38 |
+| CYCLE-1 | 1.2 | Packaging metadata, tool configuration and a rebuilt development environment | 2026-08-09 | 2026-08-09 | 2026-08-09 16:08 |
 | CYCLE-1 | 1.3 | Test scaffold — offscreen Qt harness, synthetic fixtures and the five suite directories | — | — | 2026-08-07 17:38 |
 | CYCLE-1 | 1.4 | Dependency-direction enforcement — an AST import test replacing a directory restructure | — | — | 2026-08-07 17:38 |
 | CYCLE-1 | 1.5 | Structured logging infrastructure with the bracket convention preserved as logger names | — | — | 2026-08-07 17:38 |
@@ -500,10 +565,12 @@ _Cycles 2–5 show `0/—` because story decomposition was scoped to **CYCLE-1 o
 
 | Metric | Target | Current | Status | Recorded |
 |--------|--------|---------|--------|----------|
-| Unit Test Coverage | ≥85% | —% | ⏸️ | 2026-08-06 14:57 |
-| Integration Tests | 100% pass | — | ⏸️ | 2026-08-06 14:57 |
-| Code Review | All stories | 0/11 | ⏸️ | 2026-08-07 17:38 |
-| Documentation | All stories | 0/11 | ⏸️ | 2026-08-07 17:38 |
+| Unit Test Coverage | ≥85% | 0% | 🟡 | 2026-08-09 16:08 |
+| Integration Tests | 100% pass | 100% (2/2) | ✅ | 2026-08-09 16:08 |
+| Code Review | All stories | 1/11 | 🟡 | 2026-08-09 16:29 |
+| Documentation | All stories | 1/11 | 🟡 | 2026-08-09 16:08 |
+
+> **Read the 0% before treating it as a regression.** Story 1.2 adds **zero production Python** — it is packaging, tool configuration and a runbook — so there is nothing new to cover. The figure is the *first ever measurement*, not a drop: coverage was previously unmeasurable because `.venv/` had no interpreter. It reports 0/651 statements across the six pre-existing `eye_tracker` modules, which no test has touched yet by design. **Stories 1.3 (test scaffold) and 1.6 (invariant locks) are where that number starts moving**; the ≥85% target is a CYCLE-5 exit gate, not a CYCLE-1 one. Inflating it here would have required tests written to a coverage number rather than to behaviour.
 
 ---
 
@@ -597,12 +664,30 @@ _Cycles 2–5 show `0/—` because story decomposition was scoped to **CYCLE-1 o
   - Graph re-verified after authoring: `requires`/`enables` mirrored both ways, every dependency in an earlier wave, wave membership matching every story's `wave` field, and `shared_files` discipline holding
   - **Not delivered**: GitHub issues for **1.4, 1.6 and 2.1 – 2.5**; the `epic:2` and `wave:3`–`wave:7` labels and the Epic 2 milestone; refreshed bodies for the locally-edited **#10** and **#12**
   - **0 application source changes** — planning documentation only
+- [x] **Story 1.2 — Packaging metadata, tool configuration and a rebuilt development environment**: Done — 2026-08-09 (wave 1, issue [#10](https://github.com/raminmardani/EyeTracker/issues/10))
+  - Evidence: `docs/stories-implemented/story-1.2-review.md` — **23/23 AC**, all 9 Steps, 12 manual verification commands, 16 negative-space checks, 6 contract-consistency tables
+  - Tests: **2/2 passing** (`tests/arch/test_packaging.py`), written first and observed failing with `ModuleNotFoundError: No module named 'eye_tracker'` before the editable install
+  - Lint: `ruff check .` → `All checks passed!` (rc 0) · `ruff format --check .` → rc 0 — both re-run independently by the orchestrator, not taken from the worker's report
+  - Coverage: **0%** — genuine; the story adds zero production Python. See the note under Quality Metrics
+  - Files: `pyproject.toml` (new, 149 lines) · `docs/development.md` (new, 375 lines) · `tests/arch/test_packaging.py` (new) · `requirements.txt` **byte-identical** (AC22, blob `79ec83e3…` unchanged)
+  - **B-1 cleared**: `.venv/` rebuilt from scratch with `C:\Python314\python.exe` — `Scripts/python.exe` and `pyvenv.cfg` both present, 6 runtime deps + 4 dev tools installed. The runbook was validated by *executing* it from a renamed `.venv/`, not by reading it
+  - **0 application source changes** — `git diff --stat -- main.py eye_tracker/` empty, and all 8 blob hashes identical to HEAD. M0's "revert; nothing behavioural changed" rollback is literally true
+  - 4 deviations recorded, 3 of them defects in the story's own spec caught before coding — see Deviations in the review doc
+- [x] **Code Review — Story 1.2**: Done — 2026-08-09 (INITIAL_REVIEW, all severities)
+  - Evidence: `docs/reviews/story-1.2-code-review-v1.md`
+  - Result: ❌ **CHANGES REQUESTED** — 0 🔴 · **1 🟠** · 2 🟡 · 3 🟢
+  - Verification: all 12 of the story's evidence commands **re-executed by the reviewer**, not accepted from the self-review — `ruff check .` rc 0, `ruff format --check .` rc 0, 31 suppressed findings / 11 rules (exact distribution match), `pytest` 2 passed rc 0, `git diff --stat -- main.py eye_tracker/` empty, PLR0915 inert at 50 / firing once at 30, lint gate proven to still fail on new code, secrets & `sys.path` greps clean
+  - 🟠 **ISS-001** — `tests/arch/test_packaging.py:32` scans a cwd-relative `Path("tests")`, so the permanent FR-26 guard **passes having scanned zero files** when pytest runs from anywhere but the repo root. Reproduced from `$TEMP`. Two-line fix
+  - 🟡 **ISS-002** — coverage missing patterns §15's `if __name__ == "__main__":` exclusion (`main.py:140`); harmless today, a permanently unreachable denominator slice once CYCLE-5 turns the ≥85% gate on
+  - 🟡 **ISS-003** — the self-review's N16 evidence omits ` M docs/plans/dependency-graph.yml`, a file the story did modify (the amendment itself is correct and documented inline)
+  - Carried to other owners: 🟢 ISS-005 → Story 1.3 (test-package layout / basename collisions across the five suite directories) · 🟢 ISS-006 → CYCLE-5 (`ruff>=0.14,<1` does not bound breaking changes in a 0.x tool — the 0.14→0.16 bump is what broke AC13 mid-story)
+  - Cleared rather than assumed: `"tests/*"` per-file-ignores **does** match nested test dirs — measured with a firing rule, 3 findings → 0
 
 ---
 
 ## Upcoming
 
-1. **`aire-dev-implement 1.2`** *(next)* — the only wave-1 story and the sole entry point: nothing else in the graph can run before it. It rebuilds `.venv/`, so it is also **the fix for blocker B-1**, and it lands the packaging metadata, ruff/pytest/coverage configuration and the `max-statements = 30` setting that every later story's quality gate depends on. Issue [#10](https://github.com/raminmardani/EyeTracker/issues/10)
+1. **`aire-dev-implement` — wave 2: 1.1, 1.3, 1.5** *(next)*. Wave 1 is complete, so all three unlock together and their file sets are disjoint — the first genuinely parallel slice. **1.3 (test scaffold) is the one to take first**: it creates `tests/conftest.py` and enables 1.4, 1.6 and 2.1, and it is where the 0% coverage figure starts moving. 1.1 is the FR-33 eye-pairing investigation (needs a webcam and a person); 1.5 is logging infrastructure. Issues [#12](https://github.com/raminmardani/EyeTracker/issues/12), [#11](https://github.com/raminmardani/EyeTracker/issues/11), [#13](https://github.com/raminmardani/EyeTracker/issues/13)
 2. **Second GitHub push pass** — create the `epic:2` and `wave:3` – `wave:7` labels and the Epic 2 milestone, then push stories **1.4**, **1.6** and **2.1 – 2.5**, writing each issue number back into the story file and `dependency-graph.yml`. ⚠️ Also **refresh #10 and #12**, whose bodies are stale after local edits. The push script and its guardrails are already written and proven against 4 issues
 3. **Two architecture-owner items surfaced while authoring Epic 2**: (a) 🔴 **FR-8's ≥15-usable rule makes the default nine-target grid impossible to calibrate** — `main.py` passes 25 so the shipped path is fine, but `AppController` and `CalibrationWindow` both default to 9, so once FR-8 lands at M5 the default construction always refuses; and "≥60% of *requested*" must be defined against the **resolved** count, since requesting 30 presents 25. (b) The `main.py:87-126` live-chain **duplication** in Story 2.5's session tool, which must be deleted when DR-6 extracts `LivePipeline` at M6
 4. **Requirements owner ratification — 11 items**, up from 9. The 9 previously flagged (chiefly proposed **FR-19a**, screen geometry in the profile key), plus two surfaced by cycle planning:
@@ -619,11 +704,11 @@ _Cycles 2–5 show `0/—` because story decomposition was scoped to **CYCLE-1 o
 
 | ID | Description | Owner | Opened | Status | Recorded |
 |----|-------------|-------|--------|--------|----------|
-| B-1 | 🔴 **`.venv/` has no `Scripts/python.exe` and no `pyvenv.cfg`** — it cannot be activated, so no test runner can execute. Blocks **implementation**, not planning. **Now owned by Story 1.2** (issue #10), the single wave-1 story — clearing it is the first act of implementation. Requirements open item 6 | Dev | 2026-08-06 | 🔴 Blocked | 2026-08-07 17:38 |
+| B-1 | ✅ **RESOLVED 2026-08-09 by Story 1.2** — `.venv/` rebuilt from scratch with `C:\Python314\python.exe`; `Scripts/python.exe` (Python 3.14.6) and `pyvenv.cfg` both present, 6 runtime deps + 4 dev tools installed, and the rebuild runbook in `docs/development.md` was validated by executing it from a renamed `.venv/`. `pytest`, `ruff check` and `ruff format --check` all run green. Requirements open item 6 closed | Dev | 2026-08-06 | ✅ Done | 2026-08-09 16:08 |
 | B-2 | ⚠️ **Evaluation protocol unspecified** — seating distance, lighting, target count and session count are undefined, so Cycle 1's baseline would not be reproducible and Cycle 5's delta would have no valid comparison basis. Requirements open item 3. **Story 2.2 is written to record this protocol, not to invent it** — it needs the answer as an input | Requirements owner | 2026-08-06 | 🔴 Blocked | 2026-08-07 17:38 |
 | B-3 | ✅ **RESOLVED 2026-08-07** — all 11 story files now exist and pass the depth gate. Story authoring is no longer a gate on anything; what remains is the GitHub push pass, which blocks tracker visibility rather than implementation | Product owner | 2026-08-07 | ✅ Done | 2026-08-07 19:03 |
 
-> Neither open blocker gates the **next** action. B-1 is cleared *by* the next action — Story 1.2 rebuilds `.venv/`. **B-3 is resolved**: all 11 stories exist, so dev can implement any wave in dependency order.
+> **B-1 and B-3 are both resolved.** B-2 is the only open blocker, and it does not gate the next action — wave 2 (1.1, 1.3, 1.5) is entirely independent of the evaluation protocol.
 >
 > 🔧 **B-2 now has exactly one bite, and it is enforced in code.** Stories 2.2 and 2.4 were built so the block is *visible*: every owner-supplied protocol value is a machine-detectable placeholder (`unresolved_placeholders()`), and every report prints the sections still blank. Story 2.5's tool then **refuses to record a baseline while any placeholder remains** — checked before the window opens, so a doomed 72-second session is never performed on a person. B-2 blocks the CYCLE-1 *baseline*, and nothing else. Overall Status remains 🟢 ON TRACK on that basis; it turns 🔴 if wave 7 is reached with B-2 still open, because the cycle's stated outcome is the baseline.
 
@@ -640,8 +725,8 @@ _Cycles 2–5 show `0/—` because story decomposition was scoped to **CYCLE-1 o
 | AIRE_UI_UX_DESIGNER | UI/UX spec approved — 3 gates passed, 681 tokens, contrast audit complete | Idle | 2026-08-07 | 2026-08-07 13:43 |
 | AIRE_BUILD_CYCLE_PLANNER | Build cycles complete — 5 cycles, 33/33 FRs mapped, GitHub Release options created, 14 risks logged | Idle | 2026-08-07 | 2026-08-07 14:58 |
 | AIRE_PRODUCT_OWNER | Implementation plan complete — **11/11 stories authored** across 7 waves, all gate-passed, 4 pushed as #10–#13; 3 execution-found defects and 2 scope corrections recorded | Idle | 2026-08-07 | 2026-08-07 19:03 |
-| AIRE_DEV | — | Standby | — | 2026-08-06 14:57 |
-| AIRE_REVIEWER | — | Standby | — | 2026-08-06 14:57 |
+| AIRE_DEV | Story 1.2 complete — 23/23 AC, DoD gates 1–3 passed, 2/2 tests, lint clean, `.venv/` rebuilt (B-1 cleared), 0 application source changes | Idle | 2026-08-09 | 2026-08-09 16:08 |
+| AIRE_REVIEWER | Reviewed story 1.2 — ❌ CHANGES REQUESTED, 0 🔴 / 1 🟠 / 2 🟡 / 3 🟢; all 12 evidence commands re-executed independently | Active | 2026-08-09 | 2026-08-09 16:29 |
 
 ---
 
