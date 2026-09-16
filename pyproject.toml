@@ -1,0 +1,149 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eye-tracker"
+version = "0.1.0"
+description = "Webcam gaze estimation for hands-free input"
+# NOTE: `readme` is deliberately not declared — the repository has no README.md
+# and setuptools hard-fails a build when the file a `readme` key names is absent.
+# Add the key in the same story that adds the file; declaring it first would make
+# `pip install -e .` fail for every developer.
+# 3.14 is the only interpreter this codebase has been verified against
+# (deep-dive, 25 executed checks). numpy's >=2.3 floor exists because no
+# numpy 1.x wheel is published for CPython 3.14. Widening this floor is a
+# validation exercise, not an edit — it depends on requirements open item 2
+# (target deployment hardware).
+requires-python = ">=3.14"
+
+# Mirrors requirements.txt. Ceilings are deliberate: the codebase has not
+# been validated against opencv 5.x or mediapipe 1.x. opencv-contrib-python
+# is pinned to keep its major aligned with opencv-python — both ship the
+# same `cv2` package and mismatched majors collide.
+dependencies = [
+  "opencv-python>=4.8,<5",
+  "opencv-contrib-python>=4.8,<5",
+  "mediapipe>=0.10.30,<1.0",
+  "numpy>=2.3,<3",
+  "scikit-learn>=1.3,<2",
+  "PyQt6>=6.5,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<9",
+  "pytest-cov>=5.0,<8",
+  "pytest-qt>=4.4,<5",
+  "ruff>=0.14,<1",
+]
+
+[tool.setuptools]
+# `main` is declared as a top-level module, not just a script: FR-27 requires
+# coverage over main.py, which is only measurable if it is importable.
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+# Discovery, NOT an explicit list. `packages = ["eye_tracker"]` would exclude
+# subpackages, so eye_tracker.tools (Story 1.1) and eye_tracker.evaluation
+# (Story 2.1) would silently fail to install — and each of those stories would
+# have to edit this file, turning pyproject.toml into a cross-story merge point
+# the dependency graph is designed to avoid. The glob covers them in advance.
+include = ["eye_tracker*"]
+
+[tool.ruff]
+line-length = 100          # measured: 3 lines need touching at 100 vs 13 at 88 (longest is 108)
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RET", "PTH", "NPY", "T20", "PLR0915", "RUF"]
+
+[tool.ruff.lint.pylint]
+# Default is 50, at which PLR0915 fires on nothing here and patterns §14 goes
+# unenforced. At 30 exactly one function trips it (overlay.py:86), which is
+# the case §14 already allowlists.
+max-statements = 30
+
+[tool.ruff.lint.per-file-ignores]
+# ---------------------------------------------------------------------------
+# Pre-existing findings in code this cycle deliberately does NOT modify (M0's
+# contract is "revert; nothing behavioural changed"). Every entry names the
+# work that removes it. The gate's job in CYCLE-1 is to block NEW violations.
+# ---------------------------------------------------------------------------
+"main.py" = [
+  "T201",   # 2 print sites (56, 116). Removed: CYCLE-4 (FR-25 call-site migration)
+  "E501",   # 2 long lines (76: 108 chars, 82: 102). Removed: CYCLE-3 when main.py becomes a shim (DR-5)
+  "I001",   # unsorted imports. Removed: CYCLE-3 (DR-5)
+]
+"eye_tracker/overlay.py" = [
+  "T201",     # 3 print sites (206, 212, 217). Removed: CYCLE-4 (FR-25)
+  "E702",     # 3 semicolon statements (133, 135, 140). Removed: CYCLE-3 (FR-5/FR-6 rewrite)
+  "I001",     # unsorted imports. Removed: CYCLE-3
+  "RUF046",   # redundant int() cast (30). Removed: CYCLE-3
+  "SIM105",   # try/except/pass (228). Removed: CYCLE-3
+  "PLR0915",  # CalibrationWindow.__init__ (86): 31 statements, flat Qt window-flag
+              # setup. Splitting would fragment one construction. Permanent, per §14.
+]
+"eye_tracker/tracker.py" = [
+  "T201",   # 5 print sites (123, 127, 142, 146, 160). Removed: CYCLE-4 (FR-25)
+  "E501",   # 1 long line (67: 105 chars). Removed: CYCLE-4 (FR-30/FR-31)
+  "F401",   # unused numpy import (7). Confirmed dead by deep-dive. Removed: CYCLE-4
+]
+"eye_tracker/gaze.py" = [
+  "F401",    # 4 unused landmark imports (EYE_A_TOP/BOTTOM, EYE_B_TOP/BOTTOM) whose
+             # named constants go unused while indices are re-inlined — tech debt TD-2.
+             # Removed: CYCLE-2 (FR-1/FR-2 touch this module)
+  "SIM108",  # if/else instead of ternary (142). Removed: CYCLE-2
+]
+"eye_tracker/face_mesh.py" = [
+  "SIM117",  # nested with statements (58). Part of the atomic-download pattern that
+             # FR-29 locks as verified-correct — not restructured casually. Removed: CYCLE-2
+  "SIM105",  # try/except/pass (63). Removed: CYCLE-2
+]
+"eye_tracker/calibration.py" = [
+  "I001",   # unsorted imports. Removed: CYCLE-3 (FR-8/FR-9 touch this module)
+  "B905",   # zip() without strict= (248). Removed: CYCLE-3
+]
+"tests/*" = ["PLR0915"]   # long declarative test setups; per patterns §13
+
+[tool.ruff.format]
+# Legacy modules are excluded until the cycle that modifies them formats them
+# as part of that work. 7 of 8 files would currently be rewritten; a global
+# sweep in CYCLE-1 would collide with every later cycle's diff and destroy
+# blame locality for no behavioural gain. Each exclusion is removed by the
+# cycle named in the lint per-file-ignores above.
+#
+# `*.md` is excluded for a different reason, and it is NOT deferred work:
+# ruff >=0.16 formats Python code fences inside Markdown, so a bare
+# `ruff format --check .` reformats 27 files under docs/ — including the
+# architecture documents and the story files themselves. The formatter's job
+# here is Python source, not documentation prose; rewriting a story's own
+# embedded snippet would corrupt the specification it carries. Permanent.
+# The dev extra pins ruff>=0.14,<1, so a fresh install picks up this behaviour.
+exclude = [
+  "*.md",
+  "main.py",
+  "eye_tracker/calibration.py",
+  "eye_tracker/face_mesh.py",
+  "eye_tracker/gaze.py",
+  "eye_tracker/one_euro.py",
+  "eye_tracker/overlay.py",
+  "eye_tracker/tracker.py",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyqt6"              # required by pytest-qt (DR-17)
+# Coverage over both targets FR-27 names. --cov-fail-under is deliberately
+# NOT set: at this point only scaffolding exists, and a gate that fails on
+# day one is a gate the team learns to bypass. The >=85% threshold is switched
+# on in CYCLE-5 (Story for FR-27 close-out), where the suite is complete.
+addopts = "--cov=eye_tracker --cov=main --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["eye_tracker", "main"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
